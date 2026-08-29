@@ -1,0 +1,35 @@
+{
+  "name": "ai-ticket-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Powered Ticket Management System with Express, React, TypeScript, and Bun",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "bun run dev:server",
+    "dev:all": "bun --filter \"*\" dev",
+    "dev:server": "cd server && bun run dev",
+    "dev:client": "cd client && bun run dev",
+    "build": "bun run build:client && bun run build:server",
+    "build:server": "cd server && bun run build",
+    "build:client": "cd client && bun run build",
+    "db:migrate": "cd server && bun x prisma migrate dev",
+    "db:seed": "cd server && bun run seed",
+    "db:studio": "cd server && bun x prisma studio",
+    "test": "bun test"
+  },
+  "keywords": [
+    "bun",
+    "express",
+    "react",
+    "typescript",
+    "ticket-management",
+    "ai",
+    "claude"
+  ],
+  "author": "",
+  "license": "ISC"
+}
+

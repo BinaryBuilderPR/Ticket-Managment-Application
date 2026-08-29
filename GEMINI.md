@@ -1,0 +1,69 @@
+# Project Memory & Guidelines: AI-Powered Ticket Management System
+
+This file serves as the project memory and system guidelines for Antigravity when developing and maintaining this codebase.
+
+---
+
+## 1. Project Overview
+
+An AI-Powered Student Support Desk that ingests inbound support emails, automatically categorizes tickets into three distinct categories (**General Question**, **Technical Question**, **Refund Request**), detects urgency and emotional distress for human escalation, generates bulleted issue summaries, and drafts personalized responses using a verified Knowledge Base (RAG) with **Human-in-the-Loop** agent review before dispatching.
+
+---
+
+## 2. Technology Stack
+
+* **Runtime & Package Manager:** **Bun (v1.1+)** with workspace monorepo (`/server`, `/client`).
+* **Backend:** **Express.js** + **TypeScript** running natively on Bun.
+* **Frontend:** **React 18+** + **TypeScript** + **Vite** + **Tailwind CSS** + **TipTap Rich Text Editor** + **React Router v6** + **TanStack Query**.
+* **Database & Vector Search:** **PostgreSQL 16+** with **`pgvector`** managed via **Prisma ORM**.
+* **Authentication:** **Database-Backed Sessions** (`express-session` with `connect-pg-simple` stored directly in PostgreSQL) with secure HTTP-only cookies and instant revocation.
+* **AI Engine:** **Anthropic Claude API** (`claude-3-5-haiku` for classification/summaries, `claude-3-5-sonnet` for RAG draft generation).
+* **Email Service:** **SendGrid / Mailgun** for inbound webhook parsing and outbound threaded replies.
+* **Containerization:** Multi-stage **Docker** (`oven/bun:1-alpine`) & **Docker Compose**.
+
+---
+
+## 3. Documentation & Context Fetching (Context7 MCP)
+
+Always utilize **Context7 MCP** tools to fetch up-to-date documentation, API signatures, and official best practices before implementing new dependencies or patterns:
+
+1. **`resolve-library-id`**: Resolve package names to Context7 library IDs (e.g., `/expressjs/session`, `/prisma/prisma`, `/tailwindlabs/tailwindcss`, `/ueberdosis/tiptap`).
+2. **`query-docs`**: Query the latest official documentation and verified code snippets.
+
+---
+
+## 4. Development Principles & Behavioral Rules
+
+1. **Step-by-Step Implementation:** Do not write massive monolithic features all at once. Build modularly, test incrementally, and verify each phase with the user.
+2. **Strict TypeScript & Type Safety:** Ensure strict typing across API request/response payloads (using `Zod` validation).
+3. **Database Sessions & Security:** Keep all authentication state in PostgreSQL database sessions. Never expose session secrets or API keys to the client.
+4. **Human-in-the-Loop AI:** The AI drafts replies, but human agents always review, format/beautify, and approve before email dispatching.
+5. **Clean Layered Backend Architecture:**
+   * `routes/` -> `controllers/` -> `services/` -> `db/prisma`
+   * Dedicated error handling middleware and Zod request validation on all endpoints.
+
+---
+
+## 5. Quick Reference Commands
+
+```bash
+# Start PostgreSQL container (with pgvector)
+docker compose up -d
+
+# Install dependencies across monorepo
+bun install
+
+# Start Express Backend (http://localhost:5000)
+bun run dev:server
+
+# Start React Frontend (http://localhost:5173)
+bun run dev:client
+
+# Prisma Database Migrations & Seeds
+bun x prisma migrate dev
+bun run seed
+
+# Run Tests
+bun test
+```
+

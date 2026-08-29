@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// model Session {
+//   sid    String   @id @db.VarChar
+//   sess   Json     @db.Json
+//   expire DateTime @db.Timestamp(6)
+
+//   @@index([expire], map: "IDX_session_expire")
+//   @@map("session")
+// }
+
+// enum Role {
+//   ADMIN
+//   AGENT
+// }
+
+// enum TicketCategory {
+//   GENERAL_QUESTION
+//   TECHNICAL_QUESTION
+//   REFUND_REQUEST
+// }
+
+// enum TicketStatus {
+//   OPEN
+//   RESOLVED
+//   CLOSED
+// }
+
+// enum SenderType {
+//   STUDENT
+//   AGENT
+//   AI_DRAFT
+// }
+
+// model User {
+//   id           String   @id @default(uuid())
+//   email        String   @unique
+//   passwordHash String   @map("password_hash")
+//   name         String
+//   role         Role     @default(AGENT)
+//   createdAt    DateTime @default(now()) @map("created_at")
+//   updatedAt    DateTime @updatedAt @map("updated_at")
+
+//   assignedTickets        Ticket[]                @relation("AssignedAgent")
+//   sentMessages           TicketMessage[]
+//   knowledgeBaseDocuments KnowledgeBaseDocument[]
+
+//   @@map("users")
+// }
+
+// model Ticket {
+//   id               String         @id @default(uuid())
+//   ticketNumber     Int            @unique @default(autoincrement()) @map("ticket_number")
+//   studentEmail     String         @map("student_email")
+//   studentName      String?        @map("student_name")
+//   subject          String
+//   status           TicketStatus   @default(OPEN)
+//   category         TicketCategory @default(GENERAL_QUESTION)
+//   isEscalated      Boolean        @default(false) @map("is_escalated")
+//   escalationReason String?        @map("escalation_reason") @db.Text
+//   aiSummary        String?        @map("ai_summary") @db.Text
+//   assignedAgentId  String?        @map("assigned_agent_id")
+//   assignedAgent    User?          @relation("AssignedAgent", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+//   createdAt        DateTime       @default(now()) @map("created_at")
+//   updatedAt        DateTime       @updatedAt @map("updated_at")
+
+//   messages TicketMessage[]
+
+//   @@index([status])
+//   @@index([category])
+//   @@index([isEscalated])
+//   @@index([studentEmail])
+//   @@map("tickets")
+// }
+
+// model TicketMessage {
+//   id         String     @id @default(uuid())
+//   ticketId   String     @map("ticket_id")
+//   ticket     Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+//   senderType SenderType @map("sender_type")
+//   senderId   String?    @map("sender_id")
+//   sender     User?      @relation(fields: [senderId], references: [id], onDelete: SetNull)
+//   body       String     @db.Text
+//   isDraft    Boolean    @default(false) @map("is_draft")
+//   createdAt  DateTime   @default(now()) @map("created_at")
+//   updatedAt  DateTime   @updatedAt @map("updated_at")
+
+//   @@index([ticketId])
+//   @@map("ticket_messages")
+// }
+
+// model KnowledgeBaseDocument {
+//   id          String   @id @default(uuid())
+//   title       String
+//   content     String   @db.Text
+//   createdById String?  @map("created_by_id")
+//   createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+//   createdAt   DateTime @default(now()) @map("created_at")
+//   updatedAt   DateTime @updatedAt @map("updated_at")
+
+//   chunks KnowledgeBaseChunk[]
+
+//   @@map("knowledge_base_documents")
+// }
+
+// model KnowledgeBaseChunk {
+//   id         String                @id @default(uuid())
+//   documentId String                @map("document_id")
+//   document   KnowledgeBaseDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+//   content    String                @db.Text
+//   metadata   Json?                 @db.JsonB
+//   createdAt  DateTime              @default(now()) @map("created_at")
+
+//   @@index([documentId])
+//   @@map("knowledge_base_chunks")
+// }
+
