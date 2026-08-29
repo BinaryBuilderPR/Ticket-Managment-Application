@@ -1,7 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { toNodeHandler } from 'better-auth/node';
 import { prisma } from './db/prisma.js';
+import { auth } from './config/auth.js';
+import { requireAuth } from './middlewares/auth.js';
 
 dotenv.config();
 
@@ -16,6 +19,10 @@ app.use(
     credentials: true,
   })
 );
+
+// Mount Better Auth Route Handler
+app.all('/api/auth/*', toNodeHandler(auth));
+
 app.use(express.json());
 
 // Root endpoint
@@ -75,6 +82,14 @@ app.get('/api', (req, res) => {
   res.status(200).json({
     message: 'Welcome to AI Ticket Management Backend API',
     version: '1.0.0',
+  });
+});
+
+// Protected route example using Better Auth middleware
+app.get('/api/me', requireAuth, (req: any, res) => {
+  res.status(200).json({
+    user: req.user,
+    session: req.session,
   });
 });
 

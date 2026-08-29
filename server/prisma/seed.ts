@@ -1,6 +1,6 @@
 import { PrismaClient, Role, TicketCategory, TicketStatus, SenderType } from '@prisma/client';
-import * as argon2 from 'argon2';
 import dotenv from 'dotenv';
+import { auth } from '../src/config/auth.js';
 
 dotenv.config();
 
@@ -13,42 +13,42 @@ async function main() {
   const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminSecurePassword123!';
   const adminName = process.env.INITIAL_ADMIN_NAME || 'System Administrator';
 
-  // 1. Create or update Default Admin
-  const hashedPassword = await argon2.hash(adminPassword);
+  // 1. Create or update Default Admin using Better Auth
+  let admin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (!admin) {
+    await auth.api.signUpEmail({
+      body: {
+        email: adminEmail,
+        password: adminPassword,
+        name: adminName,
+      },
+    });
+  }
 
-  const admin = await prisma.user.upsert({
+  admin = await prisma.user.update({
     where: { email: adminEmail },
-    update: {
-      passwordHash: hashedPassword,
-      name: adminName,
-      role: Role.ADMIN,
-    },
-    create: {
-      email: adminEmail,
-      passwordHash: hashedPassword,
-      name: adminName,
-      role: Role.ADMIN,
-    },
+    data: { role: Role.ADMIN },
   });
 
   console.log(`✅ Admin user seeded: ${admin.email} (Role: ${admin.role})`);
 
-  // 2. Create a demo Support Agent
+  // 2. Create a demo Support Agent using Better Auth
   const agentEmail = 'agent@institution.edu';
-  const agentPassword = await argon2.hash('AgentSecurePassword123!');
-  const agent = await prisma.user.upsert({
+  const agentPassword = 'AgentSecurePassword123!';
+  let agent = await prisma.user.findUnique({ where: { email: agentEmail } });
+  if (!agent) {
+    await auth.api.signUpEmail({
+      body: {
+        email: agentEmail,
+        password: agentPassword,
+        name: 'Sarah Connor (Support Agent)',
+      },
+    });
+  }
+
+  agent = await prisma.user.update({
     where: { email: agentEmail },
-    update: {
-      passwordHash: agentPassword,
-      name: 'Sarah Connor (Support Agent)',
-      role: Role.AGENT,
-    },
-    create: {
-      email: agentEmail,
-      passwordHash: agentPassword,
-      name: 'Sarah Connor (Support Agent)',
-      role: Role.AGENT,
-    },
+    data: { role: Role.AGENT },
   });
 
   console.log(`✅ Support agent seeded: ${agent.email} (Role: ${agent.role})`);

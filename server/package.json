@@ -16,6 +16,7 @@
     "@anthropic-ai/sdk": "^0.36.3",
     "@prisma/client": "^5.22.0",
     "argon2": "^0.41.1",
+    "better-auth": "^1.7.2",
     "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
