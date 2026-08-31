@@ -21,3 +21,4 @@ export const ProtectedRoute: React.FC = () => {
 
   return <Outlet />;
 };
+
