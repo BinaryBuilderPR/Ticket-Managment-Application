@@ -69,9 +69,8 @@ async function testAllEndpoints() {
     return { status: res.status, detail: 'Correctly blocked unauthenticated request' };
   });
 
-  // 6. Sign-Up Endpoint
-  let sessionCookie = '';
-  await check('POST /api/auth/sign-up/email (User Registration)', async () => {
+  // 6. Sign-Up Endpoint (Should be disabled - Expect 400)
+  await check('POST /api/auth/sign-up/email (Public Registration - Disabled: Expect 400)', async () => {
     const res = await fetch(`${BASE_URL}/api/auth/sign-up/email`, {
       method: 'POST',
       headers: {
@@ -80,11 +79,11 @@ async function testAllEndpoints() {
       },
       body: JSON.stringify(testUser),
     });
-    const cookie = res.headers.get('set-cookie');
     const data = await res.json();
-    if (res.status !== 200 || !data.user?.id) throw new Error('Sign-up failed');
-    sessionCookie = cookie ? cookie.split(';')[0] : '';
-    return { status: res.status, detail: `Created User ID: ${data.user?.id}` };
+    if (res.status !== 400 || data.code !== 'EMAIL_PASSWORD_SIGN_UP_DISABLED') {
+      throw new Error(`Expected 400 EMAIL_PASSWORD_SIGN_UP_DISABLED but got ${res.status} ${JSON.stringify(data)}`);
+    }
+    return { status: res.status, detail: 'Public sign-up is securely disabled' };
   });
 
   // 7. Sign-In Endpoint (Invalid Password - Expect 401)
@@ -96,7 +95,7 @@ async function testAllEndpoints() {
         Origin: ORIGIN,
       },
       body: JSON.stringify({
-        email: testUser.email,
+        email: 'student.demo2@institution.edu',
         password: 'WrongPassword!',
       }),
     });
@@ -105,6 +104,7 @@ async function testAllEndpoints() {
   });
 
   // 8. Sign-In Endpoint (Valid Password)
+  let sessionCookie = '';
   await check('POST /api/auth/sign-in/email (Valid Credentials)', async () => {
     const res = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
       method: 'POST',
@@ -113,8 +113,8 @@ async function testAllEndpoints() {
         Origin: ORIGIN,
       },
       body: JSON.stringify({
-        email: testUser.email,
-        password: testUser.password,
+        email: 'student.demo2@institution.edu',
+        password: 'Password123!',
       }),
     });
     const cookie = res.headers.get('set-cookie');
@@ -146,7 +146,7 @@ async function testAllEndpoints() {
       },
     });
     const data = await res.json();
-    if (res.status !== 200 || data.user?.email !== testUser.email) throw new Error('Authenticated /api/me failed');
+    if (res.status !== 200 || data.user?.email !== 'student.demo2@institution.edu') throw new Error('Authenticated /api/me failed');
     return { status: res.status, detail: `Authenticated as: ${data.user.email}` };
   });
 

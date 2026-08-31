@@ -1,57 +1,101 @@
-import { PrismaClient, Role, TicketCategory, TicketStatus, SenderType } from '@prisma/client';
+import { Role, TicketCategory, TicketStatus, SenderType } from '@prisma/client';
 import dotenv from 'dotenv';
-import { auth } from '../src/config/auth.js';
+import { hashPassword } from 'better-auth/crypto';
+import { prisma } from '../src/db/prisma.js';
 
 dotenv.config();
 
-const prisma = new PrismaClient();
+async function createOrUpdateUser({
+  email,
+  password,
+  name,
+  role,
+}: {
+  email: string;
+  password: string;
+  name: string;
+  role: Role;
+}) {
+  const hashedPassword = await hashPassword(password);
+
+  // 1. Upsert User in PostgreSQL
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {
+      name,
+      role,
+      emailVerified: true,
+    },
+    create: {
+      email,
+      name,
+      role,
+      emailVerified: true,
+    },
+  });
+
+  // 2. Upsert Credential Account with Better Auth scrypt hash
+  const existingAccount = await prisma.account.findFirst({
+    where: {
+      userId: user.id,
+      providerId: 'credential',
+    },
+  });
+
+  if (existingAccount) {
+    await prisma.account.update({
+      where: { id: existingAccount.id },
+      data: {
+        password: hashedPassword,
+        issuer: 'local:credential',
+      },
+    });
+  } else {
+    await prisma.account.create({
+      data: {
+        userId: user.id,
+        accountId: user.id,
+        providerId: 'credential',
+        issuer: 'local:credential',
+        password: hashedPassword,
+      },
+    });
+  }
+
+  return user;
+}
 
 async function main() {
-  console.log('🌱 Starting database seed for helpdesk database...');
+  console.log('🌱 Starting database seed for helpdesk database...\n');
 
   const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@institution.edu';
   const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminSecurePassword123!';
   const adminName = process.env.INITIAL_ADMIN_NAME || 'System Administrator';
 
-  // 1. Create or update Default Admin using Better Auth
-  let admin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (!admin) {
-    await auth.api.signUpEmail({
-      body: {
-        email: adminEmail,
-        password: adminPassword,
-        name: adminName,
-      },
-    });
-  }
-
-  admin = await prisma.user.update({
-    where: { email: adminEmail },
-    data: { role: Role.ADMIN },
+  // 1. Seed Administrator User
+  const admin = await createOrUpdateUser({
+    email: adminEmail,
+    password: adminPassword,
+    name: adminName,
+    role: Role.ADMIN,
   });
+  console.log(`✅ Admin user seeded successfully:`);
+  console.log(`   Email: ${admin.email}`);
+  console.log(`   Role: ${admin.role}`);
+  console.log(`   Name: ${admin.name}\n`);
 
-  console.log(`✅ Admin user seeded: ${admin.email} (Role: ${admin.role})`);
-
-  // 2. Create a demo Support Agent using Better Auth
+  // 2. Seed Demo Support Agent
   const agentEmail = 'agent@institution.edu';
   const agentPassword = 'AgentSecurePassword123!';
-  let agent = await prisma.user.findUnique({ where: { email: agentEmail } });
-  if (!agent) {
-    await auth.api.signUpEmail({
-      body: {
-        email: agentEmail,
-        password: agentPassword,
-        name: 'Sarah Connor (Support Agent)',
-      },
-    });
-  }
-
-  agent = await prisma.user.update({
-    where: { email: agentEmail },
-    data: { role: Role.AGENT },
+  const agent = await createOrUpdateUser({
+    email: agentEmail,
+    password: agentPassword,
+    name: 'Sarah Connor (Support Agent)',
+    role: Role.AGENT,
   });
-
-  console.log(`✅ Support agent seeded: ${agent.email} (Role: ${agent.role})`);
+  console.log(`✅ Support agent seeded successfully:`);
+  console.log(`   Email: ${agent.email}`);
+  console.log(`   Role: ${agent.role}\n`);
 
   // 3. Seed Sample Knowledge Base Documents
   const kbDocs = [
@@ -150,7 +194,7 @@ async function main() {
     }
   }
 
-  console.log('🎉 Database seeding for helpdesk completed successfully!');
+  console.log('\n🎉 Database seeding completed successfully!');
 }
 
 main()
@@ -161,4 +205,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
