@@ -1,58 +1,50 @@
-import { Role, TicketCategory, TicketStatus, SenderType } from '@prisma/client';
+import { PrismaClient, Role, TicketCategory, TicketStatus, SenderType } from '@prisma/client';
 import dotenv from 'dotenv';
 import { hashPassword } from 'better-auth/crypto';
-import { prisma } from '../src/db/prisma.js';
+import { generateId } from 'better-auth';
 
 dotenv.config();
 
-async function createOrUpdateUser({
-  email,
-  password,
-  name,
-  role,
-}: {
-  email: string;
-  password: string;
-  name: string;
-  role: Role;
-}) {
-  const hashedPassword = await hashPassword(password);
+// 1. Standalone PrismaClient instance (no Better Auth instance import)
+const prisma = new PrismaClient();
 
-  // 1. Upsert User in PostgreSQL
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {
-      name,
-      role,
-      emailVerified: true,
-    },
-    create: {
-      email,
-      name,
-      role,
-      emailVerified: true,
-    },
+async function seedAdminUser() {
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
+  const adminName = process.env.ADMIN_NAME || 'System Administrator';
+
+  // 2. Check if admin user already exists (idempotent)
+  const existingUser = await prisma.user.findUnique({
+    where: { email: adminEmail },
   });
 
-  // 2. Upsert Credential Account with Better Auth scrypt hash
-  const existingAccount = await prisma.account.findFirst({
-    where: {
-      userId: user.id,
-      providerId: 'credential',
-    },
-  });
+  if (existingUser) {
+    console.log(`ℹ️ Admin user already exists (${adminEmail}) - skipping creation.`);
+    return existingUser;
+  }
 
-  if (existingAccount) {
-    await prisma.account.update({
-      where: { id: existingAccount.id },
+  // 3. Hash password using Better Auth scrypt algorithm
+  const hashedPassword = await hashPassword(adminPassword);
+
+  // 4. Generate unique IDs using Better Auth generateId
+  const userId = generateId();
+  const accountId = generateId();
+
+  // 5. Create User + Account inside an atomic Prisma $transaction
+  const newAdmin = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
       data: {
-        password: hashedPassword,
-        issuer: 'local:credential',
+        id: userId,
+        email: adminEmail,
+        name: adminName,
+        role: Role.ADMIN,
+        emailVerified: true,
       },
     });
-  } else {
-    await prisma.account.create({
+
+    await tx.account.create({
       data: {
+        id: accountId,
         userId: user.id,
         accountId: user.id,
         providerId: 'credential',
@@ -60,44 +52,73 @@ async function createOrUpdateUser({
         password: hashedPassword,
       },
     });
-  }
 
-  return user;
+    return user;
+  });
+
+  console.log(`✅ Admin user created successfully via $transaction:`);
+  console.log(`   ID: ${newAdmin.id}`);
+  console.log(`   Email: ${newAdmin.email}`);
+  console.log(`   Role: ${newAdmin.role}`);
+  console.log(`   Name: ${newAdmin.name}\n`);
+
+  return newAdmin;
 }
 
-async function main() {
-  console.log('🌱 Starting database seed for helpdesk database...\n');
+async function seedAgentUser() {
+  const agentEmail = process.env.AGENT_EMAIL || 'agent@example.com';
+  const agentPassword = process.env.AGENT_PASSWORD || 'password123';
+  const agentName = process.env.AGENT_NAME || 'Support Agent';
 
-  const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@institution.edu';
-  const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminSecurePassword123!';
-  const adminName = process.env.INITIAL_ADMIN_NAME || 'System Administrator';
-
-  // 1. Seed Administrator User
-  const admin = await createOrUpdateUser({
-    email: adminEmail,
-    password: adminPassword,
-    name: adminName,
-    role: Role.ADMIN,
+  const existingUser = await prisma.user.findUnique({
+    where: { email: agentEmail },
   });
-  console.log(`✅ Admin user seeded successfully:`);
-  console.log(`   Email: ${admin.email}`);
-  console.log(`   Role: ${admin.role}`);
-  console.log(`   Name: ${admin.name}\n`);
 
-  // 2. Seed Demo Support Agent
-  const agentEmail = 'agent@institution.edu';
-  const agentPassword = 'AgentSecurePassword123!';
-  const agent = await createOrUpdateUser({
-    email: agentEmail,
-    password: agentPassword,
-    name: 'Sarah Connor (Support Agent)',
-    role: Role.AGENT,
+  if (existingUser) {
+    console.log(`ℹ️ Support agent already exists (${agentEmail}) - skipping creation.`);
+    return existingUser;
+  }
+
+  const hashedPassword = await hashPassword(agentPassword);
+  const userId = generateId();
+  const accountId = generateId();
+
+  const newAgent = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        id: userId,
+        email: agentEmail,
+        name: agentName,
+        role: Role.AGENT,
+        emailVerified: true,
+      },
+    });
+
+    await tx.account.create({
+      data: {
+        id: accountId,
+        userId: user.id,
+        accountId: user.id,
+        providerId: 'credential',
+        issuer: 'local:credential',
+        password: hashedPassword,
+      },
+    });
+
+    return user;
   });
-  console.log(`✅ Support agent seeded successfully:`);
-  console.log(`   Email: ${agent.email}`);
-  console.log(`   Role: ${agent.role}\n`);
 
-  // 3. Seed Sample Knowledge Base Documents
+  console.log(`✅ Support agent created successfully via $transaction:`);
+  console.log(`   ID: ${newAgent.id}`);
+  console.log(`   Email: ${newAgent.email}`);
+  console.log(`   Role: ${newAgent.role}`);
+  console.log(`   Name: ${newAgent.name}\n`);
+
+  return newAgent;
+}
+
+async function seedKnowledgeBaseAndTickets(adminId: string, agentId: string) {
+  // Sample Knowledge Base Documents
   const kbDocs = [
     {
       title: 'Refund and Cancellation Policy',
@@ -106,10 +127,6 @@ async function main() {
     {
       title: 'Platform Access and Password Reset Guide',
       content: `If you are unable to log into the student portal, verify you are using your registered university email. You can trigger a password reset link by visiting portal.institution.edu/forgot-password. If two-factor authentication (2FA) is locked or you lost your authenticator device, support agents can issue a temporary 24-hour bypass token after identity verification.`,
-    },
-    {
-      title: 'Course Schedules, Assignments and Extensions',
-      content: `All live lecture sessions are recorded and posted to the student dashboard within 24 hours. Assignment submissions have a grace period of 48 hours with a 5% late deduction per day. Students seeking medical or personal extensions beyond 48 hours must provide documentation to the academic review board.`,
     },
   ];
 
@@ -123,76 +140,51 @@ async function main() {
         data: {
           title: doc.title,
           content: doc.content,
-          createdById: admin.id,
+          createdById: adminId,
         },
       });
       console.log(`✅ Knowledge Base document created: "${doc.title}"`);
     }
   }
 
-  // 4. Seed Sample Tickets
-  const sampleTickets = [
-    {
-      ticketNumber: 1001,
-      studentEmail: 'alex.student@gmail.com',
-      studentName: 'Alex Rivera',
-      subject: 'Question about assignment submission deadline',
-      status: TicketStatus.OPEN,
-      category: TicketCategory.GENERAL_QUESTION,
-      isEscalated: false,
-      aiSummary: 'Student is inquiring if there is a grace period for the Module 3 assignment submission due tonight.',
-      messages: {
-        create: [
-          {
-            senderType: SenderType.STUDENT,
-            body: 'Hi Support Team, I am running a bit late on the Module 3 project due to work commitments. Is there any grace period or late submission policy? Thanks!',
-            isDraft: false,
-          },
-          {
-            senderType: SenderType.AI_DRAFT,
-            body: 'Hi Alex,\n\nThanks for reaching out! Yes, all assignments have a 48-hour grace period with a minimal 5% late deduction per day.\n\nIf you anticipate needing a longer extension due to personal or medical circumstances, please let us know so we can assist you.\n\nBest regards,\nStudent Support Team',
-            isDraft: true,
-          },
-        ],
-      },
-    },
-    {
-      ticketNumber: 1002,
-      studentEmail: 'david.miller@gmail.com',
-      studentName: 'David Miller',
-      subject: 'URGENT: Requesting immediate refund - Course not as advertised',
-      status: TicketStatus.OPEN,
-      category: TicketCategory.REFUND_REQUEST,
-      isEscalated: true,
-      escalationReason: 'Student expressed frustration and demanded immediate full refund within 5 days of purchase.',
-      aiSummary: 'Student enrolled 5 days ago and is requesting an immediate refund due to dissatisfaction. Flagged for human review.',
-      assignedAgentId: agent.id,
-      messages: {
-        create: [
-          {
-            senderType: SenderType.STUDENT,
-            body: 'I enrolled 5 days ago in the Full Stack course (Order #TK-99214). The syllabus differs from what was promised. I demand an immediate full refund to my card!',
-            isDraft: false,
-          },
-          {
-            senderType: SenderType.AI_DRAFT,
-            body: 'Hi David,\n\nI understand your frustration and apologize for the inconvenience. Since you enrolled 5 days ago, your request is within our 14-day refund window.\n\nOur team is reviewing your transaction (Order #TK-99214) and will process the refund to your original payment method within 5-7 business days.\n\nBest regards,\nStudent Support Team',
-            isDraft: true,
-          },
-        ],
-      },
-    },
-  ];
+  // Sample Ticket
+  const existingTicket = await prisma.ticket.findUnique({
+    where: { ticketNumber: 1001 },
+  });
 
-  for (const t of sampleTickets) {
-    const existing = await prisma.ticket.findUnique({
-      where: { ticketNumber: t.ticketNumber },
+  if (!existingTicket) {
+    await prisma.ticket.create({
+      data: {
+        ticketNumber: 1001,
+        studentEmail: 'alex.student@gmail.com',
+        studentName: 'Alex Rivera',
+        subject: 'Question about assignment submission deadline',
+        status: TicketStatus.OPEN,
+        category: TicketCategory.GENERAL_QUESTION,
+        isEscalated: false,
+        aiSummary: 'Student is inquiring if there is a grace period for the Module 3 assignment submission due tonight.',
+        assignedAgentId: agentId,
+        messages: {
+          create: [
+            {
+              senderType: SenderType.STUDENT,
+              body: 'Hi Support Team, I am running a bit late on the Module 3 project due to work commitments. Is there any grace period or late submission policy? Thanks!',
+              isDraft: false,
+            },
+          ],
+        },
+      },
     });
-    if (!existing) {
-      await prisma.ticket.create({ data: t });
-      console.log(`✅ Sample Ticket #${t.ticketNumber} created.`);
-    }
+    console.log('✅ Sample Ticket #1001 created.');
   }
+}
+
+async function main() {
+  console.log('🌱 Starting database seed for helpdesk database...\n');
+
+  const admin = await seedAdminUser();
+  const agent = await seedAgentUser();
+  await seedKnowledgeBaseAndTickets(admin.id, agent.id);
 
   console.log('\n🎉 Database seeding completed successfully!');
 }
