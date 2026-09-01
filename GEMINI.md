@@ -12,11 +12,11 @@ An AI-Powered Student Support Desk that ingests inbound support emails, automati
 
 ## 2. Technology Stack
 
-* **Runtime & Package Manager:** **Bun (v1.1+)** with workspace monorepo (`/server`, `/client`).
-* **Backend:** **Express.js** + **TypeScript** running natively on Bun.
-* **Frontend:** **React 18+** + **TypeScript** + **Vite** + **Tailwind CSS** + **TipTap Rich Text Editor** + **React Router v6** + **TanStack Query**.
+* **Runtime & Package Manager:** **Bun (v1.1+)** / **Node.js** with workspace monorepo (`/server`, `/client`).
+* **Backend:** **Express.js** + **TypeScript** running natively on Bun / Node.
+* **Authentication:** **Better Auth** (`better-auth`) with Prisma PostgreSQL adapter, database sessions, HTTP-only secure cookies, and role-based access control (`ADMIN` / `AGENT`).
 * **Database & Vector Search:** **PostgreSQL 16+** with **`pgvector`** managed via **Prisma ORM**.
-* **Authentication:** **Database-Backed Sessions** (`express-session` with `connect-pg-simple` stored directly in PostgreSQL) with secure HTTP-only cookies and instant revocation.
+* **Frontend:** **React 18+** + **TypeScript** + **Vite** + **Tailwind CSS** + **shadcn/ui** (Slate default theme, Radix UI primitives) + **React Hook Form** + **Zod** + **TipTap Rich Text Editor** + **React Router v6** + **TanStack Query**.
 * **AI Engine:** **Anthropic Claude API** (`claude-3-5-haiku` for classification/summaries, `claude-3-5-sonnet` for RAG draft generation).
 * **Email Service:** **SendGrid / Mailgun** for inbound webhook parsing and outbound threaded replies.
 * **Containerization:** Multi-stage **Docker** (`oven/bun:1-alpine`) & **Docker Compose**.
@@ -27,7 +27,7 @@ An AI-Powered Student Support Desk that ingests inbound support emails, automati
 
 Always utilize **Context7 MCP** tools to fetch up-to-date documentation, API signatures, and official best practices before implementing new dependencies or patterns:
 
-1. **`resolve-library-id`**: Resolve package names to Context7 library IDs (e.g., `/expressjs/session`, `/prisma/prisma`, `/tailwindlabs/tailwindcss`, `/ueberdosis/tiptap`).
+1. **`resolve-library-id`**: Resolve package names to Context7 library IDs (e.g., `/better-auth/better-auth`, `/prisma/prisma`, `/tailwindlabs/tailwindcss`, `/ueberdosis/tiptap`).
 2. **`query-docs`**: Query the latest official documentation and verified code snippets.
 
 ---
@@ -36,7 +36,7 @@ Always utilize **Context7 MCP** tools to fetch up-to-date documentation, API sig
 
 1. **Step-by-Step Implementation:** Do not write massive monolithic features all at once. Build modularly, test incrementally, and verify each phase with the user.
 2. **Strict TypeScript & Type Safety:** Ensure strict typing across API request/response payloads (using `Zod` validation).
-3. **Database Sessions & Security:** Keep all authentication state in PostgreSQL database sessions. Never expose session secrets or API keys to the client.
+3. **Database Sessions & Security:** Keep all authentication state in PostgreSQL database sessions via Better Auth. Never expose session secrets or API keys to the client.
 4. **Human-in-the-Loop AI:** The AI drafts replies, but human agents always review, format/beautify, and approve before email dispatching.
 5. **Clean Layered Backend Architecture:**
    * `routes/` -> `controllers/` -> `services/` -> `db/prisma`
@@ -51,19 +51,19 @@ Always utilize **Context7 MCP** tools to fetch up-to-date documentation, API sig
 docker compose up -d
 
 # Install dependencies across monorepo
-bun install
+bun install # or npm install
 
 # Start Express Backend (http://localhost:5000)
-bun run dev:server
+cd server && npm start # or bun run dev:server
 
 # Start React Frontend (http://localhost:5173)
-bun run dev:client
+cd client && npm run dev # or bun run dev:client
 
 # Prisma Database Migrations & Seeds
-bun x prisma migrate dev
-bun run seed
+npx prisma migrate dev
+npx prisma db seed # or npm run seed
 
-# Run Tests
-bun test
+# Seed Credentials
+# Admin: admin@example.com / password123
+# Agent: agent@example.com / password123
 ```
-

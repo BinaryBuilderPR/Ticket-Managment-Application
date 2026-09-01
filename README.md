@@ -1,25 +1,23 @@
-# AI-Powered Ticket Management System (Bun + Express + React + TypeScript)
+# AI-Powered Ticket Management System (Bun / Node + Express + React + TypeScript)
 
 An enterprise-ready student support desk powered by **Anthropic Claude AI** for automated ticket classification, issue summarization, sentiment/urgency escalation, and RAG-grounded draft suggestions with **Human-in-the-Loop** agent review.
-
-Built on the ultra-fast **Bun** runtime across the entire stack.
 
 ---
 
 ## 🛠️ Modern Tech Stack
 
-* **Runtime & Package Manager:** **Bun (v1.1+)** (Native TypeScript execution, workspace monorepo, fast installations)
-* **Backend:** **Express.js + TypeScript** running on Bun
-* **Frontend:** **React 18 + TypeScript + Vite** with Tailwind CSS, shadcn/ui, and TipTap Rich Text Editor
-* **Database & ORM:** **PostgreSQL 16+** with **`pgvector`** managed via **Prisma ORM**
-* **Authentication:** **Database-Backed Sessions** (`express-session` + `connect-pg-simple` stored in PostgreSQL)
+* **Runtime & Package Manager:** **Bun (v1.1+)** / **Node.js** (Native TypeScript execution, workspace monorepo)
+* **Backend:** **Express.js + TypeScript**
+* **Authentication:** **Better Auth** (`better-auth`) with PostgreSQL database sessions, HTTP-only secure cookies, and role mapping (`ADMIN` / `AGENT`)
+* **Database & Vector Search:** **PostgreSQL 16+** with **`pgvector`** managed via **Prisma ORM**
+* **Frontend:** **React 18 + TypeScript + Vite** with **Tailwind CSS**, **shadcn/ui** (Slate default theme), **React Hook Form** + **Zod**, and **TipTap Rich Text Editor**
 * **AI Engine:** **Anthropic Claude API** (`claude-3-5-haiku` & `claude-3-5-sonnet`)
 * **Email:** SendGrid / Mailgun inbound webhooks and outbound replies
-* **Containerization:** Multi-stage **Docker** using `oven/bun:1-alpine`
+* **Containerization:** Multi-stage **Docker** using `oven/bun:1-alpine` & **Docker Compose**
 
 ---
 
-## 🚀 Quick Start with Bun
+## 🚀 Quick Start
 
 ### 1. Start PostgreSQL (with `pgvector`)
 ```bash
@@ -28,8 +26,7 @@ docker compose up -d
 
 ### 2. Install Dependencies across the Monorepo
 ```bash
-# From project root
-bun install
+npm install # or bun install
 ```
 
 ### 3. Setup Backend Database & Seeds
@@ -38,39 +35,40 @@ cd server
 cp .env.example .env
 # Edit .env with your ANTHROPIC_API_KEY and credentials
 
-bun x prisma migrate dev
-bun run seed
+npx prisma migrate dev
+npm run seed # or npx prisma db seed
 ```
 
 ### 4. Run Both Server & Client
-From the project root:
 ```bash
-# Run server (http://localhost:5000)
-bun run dev:server
+# Start backend (http://localhost:5000)
+cd server
+npm start # or npm run dev
 
-# In a separate terminal, run client (http://localhost:5173)
-bun run dev:client
+# In a separate terminal, start frontend (http://localhost:5173)
+cd client
+npm run dev
 ```
-Open `http://localhost:5173` in your browser.
+Open `http://localhost:5173/login` in your browser.
 
 ---
 
 ## 🔑 Default Credentials (from Seed)
 
 * **Admin Account:**
-  * **Email:** `admin@institution.edu`
-  * **Password:** `AdminSecurePassword123!`
+  * **Email:** `admin@example.com`
+  * **Password:** `password123`
 * **Demo Agent Account:**
-  * **Email:** `agent@institution.edu`
-  * **Password:** `AgentSecurePassword123!`
+  * **Email:** `agent@example.com`
+  * **Password:** `password123`
 
 ---
 
-## 🧪 Testing Inbound Email Simulation with Bun
+## 🧪 Testing Inbound Email Simulation
 
-Run the webhook simulator with Bun to send mock student inquiries (General question, Refund escalation, Technical issue) to the AI pipeline:
+Run the webhook simulator to send mock student inquiries (General question, Refund escalation, Technical issue) to the AI pipeline:
 
 ```bash
-bun server/scripts/simulateInboundEmail.ts
+cd server
+npx tsx scripts/simulateInboundEmail.ts
 ```
-
