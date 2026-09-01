@@ -3,7 +3,15 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 import { Loader2 } from 'lucide-react';
 
-export const ProtectedRoute: React.FC = () => {
+interface ProtectedRouteProps {
+  allowedRoles?: string[];
+  redirectTo?: string;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  allowedRoles,
+  redirectTo = '/',
+}) => {
   const { data: session, isPending } = useSession();
 
   if (isPending) {
@@ -19,6 +27,12 @@ export const ProtectedRoute: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
+  const userRole = (session.user as any)?.role || 'AGENT';
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
   return <Outlet />;
 };
+
 

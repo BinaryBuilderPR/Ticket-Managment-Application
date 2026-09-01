@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, Link } from 'react-router-dom';
+import { Outlet, useNavigate, Link, NavLink } from 'react-router-dom';
 import { useSession, signOut } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, LogOut, User, ShieldCheck } from 'lucide-react';
+import { Sparkles, LogOut, User, ShieldCheck, Users, LayoutDashboard } from 'lucide-react';
 
 export const Layout: React.FC = () => {
   const { data: session } = useSession();
@@ -28,20 +28,55 @@ export const Layout: React.FC = () => {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/80 px-4 lg:px-8 py-3.5 flex items-center justify-between shadow-sm">
-        {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="font-bold text-lg text-foreground tracking-tight flex items-center gap-1.5">
-              Helpdesk
-              <Badge variant="default" className="text-[10px] uppercase font-bold tracking-wider">
-                AI Desk
-              </Badge>
-            </span>
-          </div>
-        </Link>
+        {/* Brand Logo & Nav */}
+        <div className="flex items-center gap-6">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold text-lg text-foreground tracking-tight flex items-center gap-1.5">
+                Helpdesk
+                <Badge variant="default" className="text-[10px] uppercase font-bold tracking-wider">
+                  AI Desk
+                </Badge>
+              </span>
+            </div>
+          </Link>
+
+          <nav className="flex items-center gap-1.5">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                }`
+              }
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              Dashboard
+            </NavLink>
+
+            {userRole === 'ADMIN' && (
+              <NavLink
+                to="/users"
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary/15 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`
+                }
+              >
+                <Users className="w-3.5 h-3.5" />
+                Users
+              </NavLink>
+            )}
+          </nav>
+        </div>
 
         {/* User Info & Sign Out */}
         <div className="flex items-center gap-4">
