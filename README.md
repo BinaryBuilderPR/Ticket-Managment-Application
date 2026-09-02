@@ -53,14 +53,15 @@ Open `http://localhost:5173/login` in your browser.
 
 ---
 
-## 🔑 Default Credentials (from Seed)
+## 🔑 Staff Credentials
 
-* **Admin Account:**
-  * **Email:** `admin@example.com`
-  * **Password:** `password123`
-* **Demo Agent Account:**
-  * **Email:** `agent@example.com`
-  * **Password:** `password123`
+Credentials for staff accounts are set in `server/.env` via the seed variables (`SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, etc.) and are created by running:
+
+```bash
+cd server && npm run seed
+```
+
+> ⚠️ **Never use weak or default passwords.** Copy `server/.env.example` → `server/.env` and fill in strong, unique values before seeding.
 
 ---
 

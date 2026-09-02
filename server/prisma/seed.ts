@@ -6,19 +6,15 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 
-async function main() {
-  const email = process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL;
-  const password = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
-
-  if (!email || !password) {
-    throw new Error(
-      'SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set in .env'
-    );
-  }
-
+async function createStaffUser(
+  email: string,
+  password: string,
+  name: string,
+  role: Role
+) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    console.log(`Admin user ${email} already exists — skipping.`);
+    console.log(`ℹ️  User ${email} (${role}) already exists — skipping.`);
     return;
   }
 
@@ -30,10 +26,10 @@ async function main() {
     prisma.user.create({
       data: {
         id: userId,
-        name: 'Admin',
+        name,
         email,
-        emailVerified: false,
-        role: Role.ADMIN,
+        emailVerified: true,
+        role,
         createdAt: now,
         updatedAt: now,
       },
@@ -52,7 +48,31 @@ async function main() {
     }),
   ]);
 
-  console.log(`✅ Admin user ${email} created successfully with role ${Role.ADMIN}.`);
+  console.log(`✅ Seeded ${role} user: ${email} (${name})`);
+}
+
+async function main() {
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
+  const adminName = process.env.ADMIN_NAME || 'System Administrator';
+
+  const agentEmail = process.env.SEED_AGENT_EMAIL || process.env.AGENT_EMAIL;
+  const agentPassword = process.env.SEED_AGENT_PASSWORD || process.env.AGENT_PASSWORD;
+  const agentName = process.env.AGENT_NAME || 'Support Agent';
+
+  if (!adminEmail || !adminPassword) {
+    throw new Error(
+      'SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set in .env'
+    );
+  }
+
+  // Seed Admin Account
+  await createStaffUser(adminEmail, adminPassword, adminName, Role.ADMIN);
+
+  // Seed Agent Account if configured
+  if (agentEmail && agentPassword) {
+    await createStaffUser(agentEmail, agentPassword, agentName, Role.AGENT);
+  }
 }
 
 main()

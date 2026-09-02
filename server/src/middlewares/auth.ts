@@ -43,3 +43,43 @@ export const requireAuth = async (
   }
 };
 
+/**
+ * Role-based access control middleware factory.
+ *
+ * Usage:
+ *   router.use(requireAuth, requireRole('ADMIN'));
+ *   router.get('/admin-only', requireAuth, requireRole('ADMIN', 'AGENT'), handler);
+ */
+export const requireRole = (...roles: string[]) =>
+  (req: Request, res: Response, next: NextFunction): void => {
+    const user = (req as any).user as AuthUser | undefined;
+
+    if (!user) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required.',
+      });
+      return;
+    }
+
+    const userRole: string = (user as any).role ?? '';
+
+    if (!roles.includes(userRole)) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: `This action requires one of the following roles: ${roles.join(', ')}.`,
+      });
+      return;
+    }
+
+    next();
+  };
+
+/**
+ * Convenience alias — restricts access to ADMIN role only.
+ * Must be chained after requireAuth:
+ *   router.use(requireAuth, requireAdmin);
+ */
+export const requireAdmin = requireRole('ADMIN');
+
+

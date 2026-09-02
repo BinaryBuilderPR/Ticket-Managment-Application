@@ -64,6 +64,5 @@ npx prisma migrate dev
 npx prisma db seed # or npm run seed
 
 # Seed Credentials
-# Admin: admin@example.com / password123
-# Agent: agent@example.com / password123
-```
+# Set SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD etc. in server/.env before seeding
+# Never use weak or default passwords — see server/.env.example for guidance
