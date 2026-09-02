@@ -4,6 +4,9 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import { z } from 'zod';
+import { hashPassword } from 'better-auth/crypto';
+import { Role } from '@prisma/client';
 import { toNodeHandler } from 'better-auth/node';
 import { prisma } from './db/prisma.js';
 import { auth } from './config/auth.js';
@@ -75,7 +78,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 // ---------------------------------------------------------------------------
 app.use(
   cors({
-    origin: CLIENT_URL,
+    origin: [CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -190,6 +193,120 @@ app.get('/api/db-status', requireAuth, requireAdmin, async (_req, res) => {
       success: false,
       message: 'Database connection failed.',
     });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// User Management Endpoints (Admin only)
+// ---------------------------------------------------------------------------
+
+const createUserSchema = z.object({
+  name: z.string().trim().min(3, 'Name must be at least 3 characters'),
+  email: z.string().trim().email('Please enter a valid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  role: z.nativeEnum(Role).optional().default(Role.AGENT),
+});
+
+/** List all users */
+app.get('/api/users', requireAuth, requireAdmin, async (_req, res, next) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        emailVerified: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Create a new user */
+app.post('/api/users', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const parseResult = createUserSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: parseResult.error.errors[0]?.message || 'Invalid user data',
+        details: parseResult.error.flatten().fieldErrors,
+      });
+    }
+
+    const { name, email, password, role } = parseResult.data;
+
+    // Check if user already exists
+    const existing = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existing) {
+      return res.status(409).json({
+        error: 'Conflict',
+        message: `A user with email ${email} already exists.`,
+      });
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const userId = crypto.randomUUID();
+    const accountId = crypto.randomUUID();
+    const now = new Date();
+
+    const newUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          id: userId,
+          name,
+          email,
+          role,
+          emailVerified: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          createdAt: true,
+        },
+      });
+
+      await tx.account.create({
+        data: {
+          id: accountId,
+          userId: user.id,
+          accountId: user.id,
+          providerId: 'credential',
+          issuer: 'local:credential',
+          password: hashedPassword,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      return user;
+    });
+
+    res.status(201).json({
+      success: true,
+      user: newUser,
+      message: 'User created successfully.',
+    });
+  } catch (error) {
+    next(error);
   }
 });
 
