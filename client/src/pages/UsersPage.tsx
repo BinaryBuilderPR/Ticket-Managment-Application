@@ -78,7 +78,9 @@ export const UsersPage: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setIsLoadingUsers(true);
-      const res = await fetch('/api/users');
+      const res = await fetch('/api/users', {
+        credentials: 'include',
+      });
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
@@ -118,14 +120,20 @@ export const UsersPage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
 
-      const responseData = await res.json();
+      let responseData: any = {};
+      try {
+        responseData = await res.json();
+      } catch {
+        responseData = { message: res.statusText };
+      }
 
       if (!res.ok) {
         setSubmitError(
-          responseData.message || 'Failed to create user. Please try again.'
+          responseData.message || `Failed to create user (${res.status}). Please try again.`
         );
         setIsSubmitting(false);
         return;
