@@ -284,7 +284,14 @@ export const UsersPage: React.FC = () => {
           )}
 
           {/* Modal Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4"
+            noValidate
+            autoComplete="off"
+            data-lpignore="true"
+            data-form-type="other"
+          >
             {/* 1. Name Field (min 3 chars) */}
             <div className="space-y-1.5">
               <Label htmlFor="create-name">Full Name</Label>
@@ -296,6 +303,7 @@ export const UsersPage: React.FC = () => {
                   id="create-name"
                   type="text"
                   placeholder="John Doe"
+                  autoComplete="off"
                   {...register('name')}
                   className={`pl-9 ${
                     errors.name ? 'border-destructive focus-visible:ring-destructive' : ''
@@ -321,6 +329,8 @@ export const UsersPage: React.FC = () => {
                   id="create-email"
                   type="email"
                   placeholder="john.doe@example.com"
+                  autoComplete="off"
+                  data-lpignore="true"
                   {...register('email')}
                   className={`pl-9 ${
                     errors.email ? 'border-destructive focus-visible:ring-destructive' : ''
@@ -346,6 +356,8 @@ export const UsersPage: React.FC = () => {
                   id="create-password"
                   type="password"
                   placeholder="••••••••••••"
+                  autoComplete="new-password"
+                  data-lpignore="true"
                   {...register('password')}
                   className={`pl-9 ${
                     errors.password ? 'border-destructive focus-visible:ring-destructive' : ''
