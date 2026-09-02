@@ -18,7 +18,12 @@
     "db:migrate": "cd server && bun x prisma migrate dev",
     "db:seed": "cd server && bun run seed",
     "db:studio": "cd server && bun x prisma studio",
-    "test": "bun test"
+    "db:setup-test": "cd server && npx tsx scripts/setup-test-db.ts",
+    "test": "bun test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug"
   },
   "keywords": [
     "bun",
@@ -30,6 +35,8 @@
     "claude"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
 }
-

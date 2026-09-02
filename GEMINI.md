@@ -66,3 +66,15 @@ npx prisma db seed # or npm run seed
 # Seed Credentials
 # Set SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD etc. in server/.env before seeding
 # Never use weak or default passwords — see server/.env.example for guidance
+```
+
+---
+
+## 6. E2E Testing
+
+* **Framework:** Playwright (config at root `playwright.config.ts`)
+* **Test database:** `helpdesk_test` (isolated from dev `helpdesk` DB), configured in `server/.env.test`
+* **Ports:** Test server on 3001, test client on 5174 (dev uses 5000/5173)
+* **Global setup (`e2e/global-setup.ts`):** Runs database setup and seeds the test DB
+* **Tests directory:** `e2e/tests/`
+* **Run tests:** `bun run test:e2e` from root (also `test:e2e:ui`, `test:e2e:headed`)
