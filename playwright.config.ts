@@ -38,13 +38,16 @@ export default defineConfig({
         BETTER_AUTH_SECRET: '1f2e3d4c5b6a7f8e9d0c1b2a3f4e5d6c7b8a9f0e1d2c3b4a5f6e7d8c9b0a1f2e',
         CLIENT_URL: 'http://localhost:5174',
       },
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
     {
       command: 'npm run dev -- --port 5174',
       cwd: './client',
       port: 5174,
-      reuseExistingServer: !process.env.CI,
+      env: {
+        VITE_API_TARGET: 'http://localhost:3001',
+      },
+      reuseExistingServer: false,
     },
   ],
 });

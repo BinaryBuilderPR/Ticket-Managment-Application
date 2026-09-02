@@ -1,6 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
+  "type": "module",
   "description": "Express backend with Database Sessions, Prisma, and Anthropic Claude AI running on Bun",
   "main": "src/server.ts",
   "scripts": {

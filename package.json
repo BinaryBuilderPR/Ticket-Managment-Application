@@ -2,6 +2,7 @@
   "name": "ai-ticket-management-system",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "AI-Powered Ticket Management System with Express, React, TypeScript, and Bun",
   "workspaces": [
     "server",
