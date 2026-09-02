@@ -70,7 +70,7 @@ npx prisma db seed # or npm run seed
 
 ---
 
-## 6. E2E Testing
+## 6. E2E Testing & Test Writer Agent
 
 * **Framework:** Playwright (config at root `playwright.config.ts`)
 * **Test database:** `helpdesk_test` (isolated from dev `helpdesk` DB), configured in `server/.env.test`
@@ -78,3 +78,7 @@ npx prisma db seed # or npm run seed
 * **Global setup (`e2e/global-setup.ts`):** Runs database setup and seeds the test DB
 * **Tests directory:** `e2e/tests/`
 * **Run tests:** `bun run test:e2e` from root (also `test:e2e:ui`, `test:e2e:headed`)
+* **E2E Test Writer Agent:**
+  To generate or update Playwright test specs under `e2e/tests/`, invoke the custom test writer agent:
+  `/agent @[.agents/playwright-test-writer.md]`
+
