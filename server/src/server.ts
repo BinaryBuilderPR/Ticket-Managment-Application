@@ -220,7 +220,7 @@ app.get('/api/users', requireAuth, requireAdmin, async (_req, res, next) => {
         emailVerified: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
 

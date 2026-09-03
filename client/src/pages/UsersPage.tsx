@@ -8,6 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -26,6 +34,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Calendar,
+  RefreshCw,
 } from 'lucide-react';
 
 const createUserSchema = z.object({
@@ -56,6 +65,7 @@ interface UserItem {
 export const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -78,6 +88,7 @@ export const UsersPage: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setIsLoadingUsers(true);
+      setFetchError(null);
       const res = await fetch('/api/users', {
         credentials: 'include',
       });
@@ -85,10 +96,11 @@ export const UsersPage: React.FC = () => {
         const data = await res.json();
         setUsers(data.users || []);
       } else {
-        console.error('Failed to fetch users:', res.statusText);
+        const errorData = await res.json().catch(() => ({}));
+        setFetchError(errorData.message || `Failed to fetch users (${res.status})`);
       }
-    } catch (error) {
-      console.error('Error fetching users:', error);
+    } catch (error: any) {
+      setFetchError(error.message || 'Network error occurred while fetching users.');
     } finally {
       setIsLoadingUsers(false);
     }
@@ -157,8 +169,8 @@ export const UsersPage: React.FC = () => {
       {/* Top Header & Action Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
-            <Users className="w-7 h-7 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <Users className="w-6 h-6 text-primary" />
             User Management
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -166,14 +178,27 @@ export const UsersPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Button above the user list */}
-        <Button
-          onClick={handleOpenModal}
-          className="gap-2 font-semibold shadow-lg shadow-primary/20"
-        >
-          <UserPlus className="w-4 h-4" />
-          Create New User
-        </Button>
+        {/* Buttons above the user list */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchUsers}
+            disabled={isLoadingUsers}
+            className="gap-2 text-xs"
+            title="Refresh user list"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingUsers ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button
+            onClick={handleOpenModal}
+            className="gap-2 font-semibold shadow-lg shadow-primary/20 text-xs sm:text-sm"
+          >
+            <UserPlus className="w-4 h-4" />
+            Create New User
+          </Button>
+        </div>
       </div>
 
       {/* Success Notification */}
@@ -184,7 +209,20 @@ export const UsersPage: React.FC = () => {
         </div>
       )}
 
-      {/* User List Table / Cards */}
+      {/* Error Alert */}
+      {fetchError && (
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center justify-between gap-3 text-sm animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span>{fetchError}</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchUsers} className="text-xs">
+            Try Again
+          </Button>
+        </div>
+      )}
+
+      {/* User List Table / States */}
       {isLoadingUsers ? (
         <div className="py-20 flex flex-col items-center justify-center text-muted-foreground space-y-3">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -208,55 +246,62 @@ export const UsersPage: React.FC = () => {
         </Card>
       ) : (
         <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-secondary/40 border-b border-border/60 text-xs uppercase font-semibold text-muted-foreground tracking-wider">
-                <tr>
-                  <th scope="col" className="px-6 py-4">User</th>
-                  <th scope="col" className="px-6 py-4">Email</th>
-                  <th scope="col" className="px-6 py-4">Role</th>
-                  <th scope="col" className="px-6 py-4">Created</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {users.map((u) => (
-                  <tr
-                    key={u.id}
-                    className="hover:bg-secondary/20 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-foreground font-semibold text-xs border border-border/80">
-                          {u.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-semibold text-foreground">{u.name}</span>
+          <Table>
+            <TableHeader className="bg-secondary/40">
+              <TableRow>
+                <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
+                  Name
+                </TableHead>
+                <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
+                  Email
+                </TableHead>
+                <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
+                  Role
+                </TableHead>
+                <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
+                  Created
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((u) => (
+                <TableRow key={u.id} className="hover:bg-secondary/20 transition-colors">
+                  <TableCell className="px-6 py-4 font-medium whitespace-nowrap">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-foreground font-semibold text-xs border border-border/80">
+                        {u.name.charAt(0).toUpperCase()}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
-                      {u.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge
-                        variant={u.role === 'ADMIN' ? 'admin' : 'agent'}
-                        className="text-[10px] uppercase gap-1"
-                      >
-                        {u.role === 'ADMIN' && <ShieldCheck className="w-3 h-3" />}
-                        {u.role}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-muted-foreground flex items-center gap-1.5 pt-5">
+                      <span className="font-semibold text-foreground">{u.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                    {u.email}
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap">
+                    <Badge
+                      variant={u.role === 'ADMIN' ? 'admin' : 'agent'}
+                      className="text-[10px] uppercase gap-1"
+                    >
+                      {u.role === 'ADMIN' && <ShieldCheck className="w-3 h-3" />}
+                      {u.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-muted-foreground/70" />
-                      {new Date(u.createdAt).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <span>
+                        {new Date(u.createdAt).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 
