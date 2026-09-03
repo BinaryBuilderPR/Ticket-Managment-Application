@@ -37,6 +37,9 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
+import { apiClient } from '@/lib/api-client';
+import axios from 'axios';
+
 const createUserSchema = z.object({
   name: z
     .string()
@@ -89,18 +92,14 @@ export const UsersPage: React.FC = () => {
     try {
       setIsLoadingUsers(true);
       setFetchError(null);
-      const res = await fetch('/api/users', {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users || []);
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        setFetchError(errorData.message || `Failed to fetch users (${res.status})`);
-      }
+      const res = await apiClient.get('/users');
+      setUsers(res.data.users || []);
     } catch (error: any) {
-      setFetchError(error.message || 'Network error occurred while fetching users.');
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to fetch users. Please try again.';
+      setFetchError(errorMsg);
     } finally {
       setIsLoadingUsers(false);
     }
@@ -127,29 +126,7 @@ export const UsersPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-
-      let responseData: any = {};
-      try {
-        responseData = await res.json();
-      } catch {
-        responseData = { message: res.statusText };
-      }
-
-      if (!res.ok) {
-        setSubmitError(
-          responseData.message || `Failed to create user (${res.status}). Please try again.`
-        );
-        setIsSubmitting(false);
-        return;
-      }
+      await apiClient.post('/users', data);
 
       // Success
       setIsModalOpen(false);
@@ -158,7 +135,11 @@ export const UsersPage: React.FC = () => {
       setTimeout(() => setSuccessMessage(null), 5000);
       await fetchUsers();
     } catch (error: any) {
-      setSubmitError(error.message || 'An unexpected error occurred.');
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        setSubmitError(error.response.data.message);
+      } else {
+        setSubmitError(error.message || 'An unexpected error occurred.');
+      }
     } finally {
       setIsSubmitting(false);
     }
