@@ -6,7 +6,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-  testDir: './e2e/tests',
+  testDir: path.join(__dirname, 'e2e', 'tests'),
+  testMatch: /.*\.spec\.ts/,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -38,7 +39,7 @@ export default defineConfig({
         BETTER_AUTH_SECRET: '1f2e3d4c5b6a7f8e9d0c1b2a3f4e5d6c7b8a9f0e1d2c3b4a5f6e7d8c9b0a1f2e',
         CLIENT_URL: 'http://localhost:5174',
       },
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
     },
     {
       command: 'npm run dev -- --port 5174',
@@ -47,7 +48,7 @@ export default defineConfig({
       env: {
         VITE_API_TARGET: 'http://localhost:3001',
       },
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
     },
   ],
 });
