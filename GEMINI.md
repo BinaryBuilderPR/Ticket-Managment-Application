@@ -1,6 +1,6 @@
 # Project Memory & Guidelines: AI-Powered Ticket Management System
 
-This file serves as the project memory and system guidelines for Antigravity when developing and maintaining this codebase.
+This file serves as the project memory and system guidelines for Antigravity & Claude when developing and maintaining this codebase.
 
 ---
 
@@ -16,7 +16,7 @@ An AI-Powered Student Support Desk that ingests inbound support emails, automati
 * **Backend:** **Express.js** + **TypeScript** running natively on Bun / Node.
 * **Authentication:** **Better Auth** (`better-auth`) with Prisma PostgreSQL adapter, database sessions, HTTP-only secure cookies, and role-based access control (`ADMIN` / `AGENT`).
 * **Database & Vector Search:** **PostgreSQL 16+** with **`pgvector`** managed via **Prisma ORM**.
-* **Frontend:** **React 18+** + **TypeScript** + **Vite** + **Tailwind CSS** + **shadcn/ui** (Slate default theme, Radix UI primitives) + **React Hook Form** + **Zod** + **TipTap Rich Text Editor** + **React Router v6** + **TanStack Query**.
+* **Frontend:** **React 18+** + **TypeScript** + **Vite** + **Tailwind CSS** + **shadcn/ui** (Slate default theme, Radix UI primitives) + **React Hook Form** + **Zod** + **TipTap Rich Text Editor** + **React Router v6** + **TanStack Query** + **Axios**.
 * **AI Engine:** **Anthropic Claude API** (`claude-3-5-haiku` for classification/summaries, `claude-3-5-sonnet` for RAG draft generation).
 * **Email Service:** **SendGrid / Mailgun** for inbound webhook parsing and outbound threaded replies.
 * **Containerization:** Multi-stage **Docker** (`oven/bun:1-alpine`) & **Docker Compose**.
@@ -27,7 +27,7 @@ An AI-Powered Student Support Desk that ingests inbound support emails, automati
 
 Always utilize **Context7 MCP** tools to fetch up-to-date documentation, API signatures, and official best practices before implementing new dependencies or patterns:
 
-1. **`resolve-library-id`**: Resolve package names to Context7 library IDs (e.g., `/better-auth/better-auth`, `/prisma/prisma`, `/tailwindlabs/tailwindcss`, `/ueberdosis/tiptap`).
+1. **`resolve-library-id`**: Resolve package names to Context7 library IDs (e.g., `/better-auth/better-auth`, `/prisma/prisma`, `/tailwindlabs/tailwindcss`, `/ueberdosis/tiptap`, `/tanstack/react-query`, `/axios/axios`).
 2. **`query-docs`**: Query the latest official documentation and verified code snippets.
 
 ---
@@ -41,6 +41,10 @@ Always utilize **Context7 MCP** tools to fetch up-to-date documentation, API sig
 5. **Clean Layered Backend Architecture:**
    * `routes/` -> `controllers/` -> `services/` -> `db/prisma`
    * Dedicated error handling middleware and Zod request validation on all endpoints.
+6. **Frontend Networking & State Management (Axios & TanStack React Query):**
+   * **Always use Axios** (via `@/lib/api-client` configured with `withCredentials: true`) for all HTTP communications with the backend API.
+   * **Always use TanStack React Query** (`useQuery`, `useMutation`, `useQueryClient`) for server state management, caching, background synchronization, loading/error states, and automated query invalidation.
+   * **Do NOT use raw `window.fetch`** in frontend React components.
 
 ---
 
@@ -77,8 +81,8 @@ npx prisma db seed # or npm run seed
 * **Ports:** Test server on 3001, test client on 5174 (dev uses 5000/5173)
 * **Global setup (`e2e/global-setup.ts`):** Runs database setup and seeds the test DB
 * **Tests directory:** `e2e/tests/`
+* **Outputs:** `e2e/test-results/` and `e2e/playwright-report/`
 * **Run tests:** `bun run test:e2e` from root (also `test:e2e:ui`, `test:e2e:headed`)
 * **E2E Test Writer Agent:**
   To generate or update Playwright test specs under `e2e/tests/`, invoke the custom test writer agent:
   `/agent @[.agents/playwright-test-writer.md]`
-
