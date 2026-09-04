@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,9 +38,7 @@ import {
   Calendar,
   RefreshCw,
 } from 'lucide-react';
-
 import { apiClient } from '@/lib/api-client';
-import axios from 'axios';
 
 const createUserSchema = z.object({
   name: z
@@ -66,14 +66,38 @@ interface UserItem {
 }
 
 export const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState<UserItem[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // -------------------------------------------------------------------------
+  // TanStack Query: Fetch Users
+  // -------------------------------------------------------------------------
+  const {
+    data: users = [],
+    isLoading: isLoadingUsers,
+    isError: isFetchError,
+    error: fetchErrorObj,
+    refetch: refetchUsers,
+    isFetching,
+  } = useQuery<UserItem[]>({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await apiClient.get('/users');
+      return res.data.users || [];
+    },
+  });
+
+  const fetchErrorMessage = isFetchError
+    ? axios.isAxiosError(fetchErrorObj) && fetchErrorObj.response?.data?.message
+      ? fetchErrorObj.response.data.message
+      : (fetchErrorObj as Error)?.message || 'Failed to fetch users. Please try again.'
+    : null;
+
+  // -------------------------------------------------------------------------
+  // React Hook Form
+  // -------------------------------------------------------------------------
   const {
     register,
     handleSubmit,
@@ -88,37 +112,30 @@ export const UsersPage: React.FC = () => {
     },
   });
 
-  const fetchUsers = async () => {
-    try {
-      setIsLoadingUsers(true);
-      setFetchError(null);
-      const res = await fetch('/api/users', {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users || []);
+  // -------------------------------------------------------------------------
+  // TanStack Query: Create User Mutation
+  // -------------------------------------------------------------------------
+  const createUserMutation = useMutation({
+    mutationFn: async (formData: CreateUserFormData) => {
+      const res = await apiClient.post('/users', formData);
+      return res.data;
+    },
+    onSuccess: (_, variables) => {
+      setIsModalOpen(false);
+      reset();
+      setSubmitError(null);
+      setSuccessMessage(`User "${variables.name}" was created successfully!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        setSubmitError(error.response.data.message);
       } else {
-        const errorData = await res.json().catch(() => ({}));
-        setFetchError(errorData.message || `Failed to fetch users (${res.status})`);
+        setSubmitError(error.message || 'An unexpected error occurred.');
       }
-      const res = await apiClient.get('/users');
-      setUsers(res.data.users || []);
-    } catch (error: any) {
-      setFetchError(error.message || 'Network error occurred while fetching users.');
-      const errorMsg =
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to fetch users. Please try again.';
-      setFetchError(errorMsg);
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+    },
+  });
 
   const handleOpenModal = () => {
     reset();
@@ -132,52 +149,9 @@ export const UsersPage: React.FC = () => {
     setSubmitError(null);
   };
 
-  const onSubmit = async (data: CreateUserFormData) => {
+  const onSubmit = (data: CreateUserFormData) => {
     setSubmitError(null);
-    setIsSubmitting(true);
-
-    try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-      await apiClient.post('/users', data);
-
-      let responseData: any = {};
-      try {
-        responseData = await res.json();
-      } catch {
-        responseData = { message: res.statusText };
-      }
-
-      if (!res.ok) {
-        setSubmitError(
-          responseData.message || `Failed to create user (${res.status}). Please try again.`
-        );
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Success
-      setIsModalOpen(false);
-      reset();
-      setSuccessMessage(`User "${data.name}" was created successfully!`);
-      setTimeout(() => setSuccessMessage(null), 5000);
-      await fetchUsers();
-    } catch (error: any) {
-      setSubmitError(error.message || 'An unexpected error occurred.');
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        setSubmitError(error.response.data.message);
-      } else {
-        setSubmitError(error.message || 'An unexpected error occurred.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    createUserMutation.mutate(data);
   };
 
   return (
@@ -194,17 +168,17 @@ export const UsersPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Buttons above the user list */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchUsers}
-            disabled={isLoadingUsers}
+            onClick={() => refetchUsers()}
+            disabled={isFetching}
             className="gap-2 text-xs"
             title="Refresh user list"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingUsers ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button
@@ -225,14 +199,19 @@ export const UsersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Error Alert */}
-      {fetchError && (
+      {/* Fetch Error Alert */}
+      {fetchErrorMessage && (
         <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center justify-between gap-3 text-sm animate-in fade-in duration-200">
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 shrink-0" />
-            <span>{fetchError}</span>
+            <span>{fetchErrorMessage}</span>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchUsers} className="text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetchUsers()}
+            className="text-xs"
+          >
             Try Again
           </Button>
         </div>
@@ -438,12 +417,16 @@ export const UsersPage: React.FC = () => {
                 type="button"
                 variant="outline"
                 onClick={handleCloseModal}
-                disabled={isSubmitting}
+                disabled={createUserMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="font-semibold">
-                {isSubmitting ? (
+              <Button
+                type="submit"
+                disabled={createUserMutation.isPending}
+                className="font-semibold"
+              >
+                {createUserMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     <span>Creating...</span>
