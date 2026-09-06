@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -219,9 +220,46 @@ export const UsersPage: React.FC = () => {
 
       {/* User List Table / States */}
       {isLoadingUsers ? (
-        <div className="py-20 flex flex-col items-center justify-center text-muted-foreground space-y-3">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-sm">Loading users...</p>
+        <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xl">
+          <Table>
+            <TableHeader className="bg-secondary/40">
+              <TableRow>
+                <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
+                  Name
+                </TableHead>
+                <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
+                  Email
+                </TableHead>
+                <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
+                  Role
+                </TableHead>
+                <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
+                  Created
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i} className="hover:bg-secondary/10">
+                  <TableCell className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-8 h-8 rounded-lg" />
+                      <Skeleton className="h-4 w-28" />
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
+                    <Skeleton className="h-4 w-40" />
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
+                    <Skeleton className="h-5 w-16 rounded-md" />
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : users.length === 0 ? (
         <Card className="p-12 text-center space-y-4 border-dashed border-border/80">
