@@ -40,16 +40,11 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import {
-  createUserSchema,
-  type CreateUserFormData,
-  type UserItem,
-} from '@ticket-desk/core';
+import { type UserItem } from '@ticket-desk/core';
+import { useUserForm } from '@/hooks/useUserForm';
 
 export const UsersPage: React.FC = () => {
-  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // -------------------------------------------------------------------------
@@ -77,45 +72,22 @@ export const UsersPage: React.FC = () => {
     : null;
 
   // -------------------------------------------------------------------------
-  // React Hook Form
+  // Custom Hook: useUserForm
   // -------------------------------------------------------------------------
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
-  } = useForm<CreateUserFormData>({
-    resolver: zodResolver(createUserSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      role: 'AGENT',
-    },
-  });
-
-  // -------------------------------------------------------------------------
-  // TanStack Query: Create User Mutation
-  // -------------------------------------------------------------------------
-  const createUserMutation = useMutation({
-    mutationFn: async (formData: CreateUserFormData) => {
-      const res = await apiClient.post('/users', formData);
-      return res.data;
-    },
-    onSuccess: (_, variables) => {
+    errors,
+    submitError,
+    setSubmitError,
+    isSubmitting,
+    onSubmit,
+  } = useUserForm({
+    onSuccess: (user) => {
       setIsModalOpen(false);
-      reset();
-      setSubmitError(null);
-      setSuccessMessage(`User "${variables.name}" was created successfully!`);
+      setSuccessMessage(`User "${user.name}" was created successfully!`);
       setTimeout(() => setSuccessMessage(null), 5000);
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-    },
-    onError: (error: any) => {
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        setSubmitError(error.response.data.message);
-      } else {
-        setSubmitError(error.message || 'An unexpected error occurred.');
-      }
     },
   });
 
@@ -129,11 +101,6 @@ export const UsersPage: React.FC = () => {
     setIsModalOpen(false);
     reset();
     setSubmitError(null);
-  };
-
-  const onSubmit = (data: CreateUserFormData) => {
-    setSubmitError(null);
-    createUserMutation.mutate(data);
   };
 
   return (
@@ -457,16 +424,16 @@ export const UsersPage: React.FC = () => {
                 type="button"
                 variant="outline"
                 onClick={handleCloseModal}
-                disabled={createUserMutation.isPending}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={createUserMutation.isPending}
+                disabled={isSubmitting}
                 className="font-semibold"
               >
-                {createUserMutation.isPending ? (
+                {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     <span>Creating...</span>
