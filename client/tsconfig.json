@@ -17,8 +17,10 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@ticket-desk/core": ["../packages/core/src/index.ts"],
+      "core": ["../packages/core/src/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../packages/core/src"]
 }

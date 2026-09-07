@@ -131,9 +131,13 @@ npx prisma db seed # or npm run seed
 ## 8. Zod Data Validation & Schema Integrity
 
 * **Universal Validation Standard:** Use **Zod** as the sole schema definition and runtime validator across the entire monorepo.
+* **Shared Core Package (`packages/core`):**
+  * **Always define Zod schemas in `packages/core/src/schemas/`** (e.g. `users.ts`, `tickets.ts`) and export from `packages/core/src/index.ts`.
+  * **Reference in Client & Server:** Both `/server` and `/client` import schemas and inferred types directly from `@ticket-desk/core` (e.g. `import { createUserSchema, type CreateUserInput } from '@ticket-desk/core'`).
+  * Never duplicate schemas or interfaces locally in `server` or `client`.
 * **Frontend Form Validation (React Hook Form + Zod):**
   * **Always use React Hook Form with Zod** for all form handling (e.g. adding new users, ticket replies, settings):
-    * Define strict Zod schemas matching user input forms (`createUserSchema`).
+    * Import schemas from `@ticket-desk/core` (`createUserSchema`).
     * Integrate with React Hook Form using `useForm<CreateUserFormData>({ resolver: zodResolver(createUserSchema), defaultValues: { ... } })`.
     * Wire up inputs with `{...register('fieldName')}` and display real-time client-side error feedback via `errors.fieldName?.message`.
     * Handle submission via TanStack Query's `useMutation` in the `handleSubmit(onSubmit)` handler.

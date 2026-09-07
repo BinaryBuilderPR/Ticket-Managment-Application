@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@ticket-desk/core': path.resolve(__dirname, '../packages/core/src/index.ts'),
+      'core': path.resolve(__dirname, '../packages/core/src/index.ts'),
     },
   },
   test: {

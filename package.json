@@ -5,6 +5,7 @@
   "type": "module",
   "description": "AI-Powered Ticket Management System with Express, React, TypeScript, and Bun",
   "workspaces": [
+    "packages/*",
     "server",
     "client"
   ],

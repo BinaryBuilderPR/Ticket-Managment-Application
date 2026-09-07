@@ -40,32 +40,11 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-
-const createUserSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(3, 'Name must be at least 3 characters'),
-  email: z
-    .string()
-    .trim()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['AGENT', 'ADMIN']).default('AGENT'),
-});
-
-type CreateUserFormData = z.infer<typeof createUserSchema>;
-
-interface UserItem {
-  id: string;
-  name: string;
-  email: string;
-  role: 'ADMIN' | 'AGENT';
-  createdAt: string;
-}
+import {
+  createUserSchema,
+  type CreateUserFormData,
+  type UserItem,
+} from '@ticket-desk/core';
 
 export const UsersPage: React.FC = () => {
   const queryClient = useQueryClient();

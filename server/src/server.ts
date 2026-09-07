@@ -10,6 +10,7 @@ import { Role } from '@prisma/client';
 import { toNodeHandler } from 'better-auth/node';
 import { prisma } from './db/prisma.js';
 import { auth } from './config/auth.js';
+import { createUserSchema } from '@ticket-desk/core';
 import { requireAuth, requireAdmin } from './middlewares/auth.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
@@ -199,13 +200,6 @@ app.get('/api/db-status', requireAuth, requireAdmin, async (_req, res) => {
 // ---------------------------------------------------------------------------
 // User Management Endpoints (Admin only)
 // ---------------------------------------------------------------------------
-
-const createUserSchema = z.object({
-  name: z.string().trim().min(3, 'Name must be at least 3 characters'),
-  email: z.string().trim().email('Please enter a valid email address'),
-  password: z.string().trim().min(8, 'Password must be at least 8 characters'),
-  role: z.nativeEnum(Role).optional().default(Role.AGENT),
-});
 
 /** List all users */
 app.get('/api/users', requireAuth, requireAdmin, async (_req, res, next) => {

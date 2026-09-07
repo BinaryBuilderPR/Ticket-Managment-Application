@@ -9,8 +9,13 @@
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ticket-desk/core": ["../packages/core/src/index.ts"],
+      "core": ["../packages/core/src/index.ts"]
+    },
     "outDir": "./dist"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "../packages/core/src/**/*"]
 }
 
