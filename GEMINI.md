@@ -27,7 +27,7 @@ An AI-Powered Student Support Desk that ingests inbound support emails, automati
 
 Always utilize **Context7 MCP** tools to fetch up-to-date documentation, API signatures, and official best practices before implementing new dependencies or patterns:
 
-1. **`resolve-library-id`**: Resolve package names to Context7 library IDs (e.g., `/better-auth/better-auth`, `/prisma/prisma`, `/tailwindlabs/tailwindcss`, `/ueberdosis/tiptap`, `/tanstack/react-query`, `/axios/axios`).
+1. **`resolve-library-id`**: Resolve package names to Context7 library IDs (e.g., `/better-auth/better-auth`, `/prisma/prisma`, `/tailwindlabs/tailwindcss`, `/ueberdosis/tiptap`, `/tanstack/react-query`, `/axios/axios`, `/vitest-dev/vitest`, `/testing-library/react-testing-library`).
 2. **`query-docs`**: Query the latest official documentation and verified code snippets.
 
 ---
@@ -86,3 +86,37 @@ npx prisma db seed # or npm run seed
 * **E2E Test Writer Agent:**
   To generate or update Playwright test specs under `e2e/tests/`, invoke the custom test writer agent:
   `/agent @[.agents/playwright-test-writer.md]`
+
+---
+
+## 7. Frontend Component Testing (Vitest & React Testing Library)
+
+* **Framework:** **Vitest** + **`@testing-library/react`** + **`@testing-library/jest-dom`** + **`@testing-library/user-event`** + **`jsdom`**.
+* **Configuration:** Inline under `client/vite.config.ts` (`test: { globals: true, environment: 'jsdom', setupFiles: './src/test/setup.ts' }`).
+* **Test Utilities & Wrappers:** Always wrap components under test using `renderWithQuery` from `@/test/renderWithQuery` (or `@/test/test-utils`), which provides:
+  * Isolated `QueryClient` with `retry: false`, `gcTime: 0`, and `staleTime: 0`.
+  * `BrowserRouter` for routing support.
+* **API Mocking:** Mock Axios calls via `vi.spyOn(apiClient, 'get')` and `vi.spyOn(apiClient, 'post')`. For error responses, mock with `new AxiosError(...)`.
+* **Required Coverage Checklist for Component Tests:**
+  1. **Loading State:** Verify skeleton loaders or loading indicators render while queries are pending.
+  2. **Data Rendering:** Verify tables/lists render items, badges, formatted dates, and data cells correctly.
+  3. **Empty State:** Verify fallback/empty placeholder messages render when empty lists are returned.
+  4. **Error Handling & Retry:** Verify error banners display with working "Try Again" retry triggers.
+  5. **Modal & Dialog Lifecycles:** Verify open, close, and cancel actions.
+  6. **Form Validation:** Verify client-side Zod validation errors on empty or invalid inputs.
+  7. **Mutations Flow:** Verify payload submission, loading button state, success feedback, and automated query cache invalidation.
+  8. **Server Error Feedback:** Verify backend validation/conflict errors (e.g. 409 email exists) display inside modals.
+* **Run Component Tests:**
+  ```bash
+  # Single run
+  npm test -w client
+
+  # Run with verbose output and logs
+  npm test -w client -- --reporter=verbose
+
+  # Interactive watch mode
+  npm run test:client:watch
+
+  # Interactive Vitest visual UI dashboard
+  cd client && npx vitest --ui
+  ```
