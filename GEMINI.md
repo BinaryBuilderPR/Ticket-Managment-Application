@@ -35,7 +35,11 @@ Always utilize **Context7 MCP** tools to fetch up-to-date documentation, API sig
 ## 4. Development Principles & Behavioral Rules
 
 1. **Step-by-Step Implementation:** Do not write massive monolithic features all at once. Build modularly, test incrementally, and verify each phase with the user.
-2. **Strict TypeScript & Type Safety:** Ensure strict typing across API request/response payloads (using `Zod` validation).
+2. **Strict TypeScript & Type Safety (Zod):**
+   * **Always use Zod for Data Validation** across both frontend and backend.
+   * **Backend Validation:** Validate all inbound HTTP request bodies, query parameters, and route parameters with Zod schemas before processing in route handlers/controllers.
+   * **Frontend Validation:** Validate forms with Zod schemas integrated into **React Hook Form** using `@hookform/resolvers/zod`.
+   * **Type Inference:** Derive TypeScript types directly from Zod schemas using `z.infer<typeof schema>` to maintain a single source of truth for types.
 3. **Database Sessions & Security:** Keep all authentication state in PostgreSQL database sessions via Better Auth. Never expose session secrets or API keys to the client.
 4. **Human-in-the-Loop AI:** The AI drafts replies, but human agents always review, format/beautify, and approve before email dispatching.
 5. **Clean Layered Backend Architecture:**
@@ -120,3 +124,19 @@ npx prisma db seed # or npm run seed
   # Interactive Vitest visual UI dashboard
   cd client && npx vitest --ui
   ```
+
+---
+
+## 8. Zod Data Validation & Schema Integrity
+
+* **Universal Validation Standard:** Use **Zod** as the sole schema definition and runtime validator across the entire monorepo.
+* **Frontend Form Validation:**
+  * Define strict Zod schemas matching user input forms (e.g. `createUserSchema`, `ticketReplySchema`).
+  * Integrate with **React Hook Form** using `zodResolver(schema)`.
+  * Always test form validation rules in component tests (e.g. verifying empty fields, invalid emails, and length constraints).
+* **Backend Request Validation:**
+  * Validate all request payloads (`req.body`, `req.query`, `req.params`) using `schema.safeParse()`.
+  * Return structured `400 Bad Request` responses containing Zod validation error messages when validation fails.
+* **Type Safety & Single Source of Truth:**
+  * Infer TypeScript types using `type UserFormData = z.infer<typeof createUserSchema>;`. Never maintain duplicate TypeScript interfaces for validated models.
+
