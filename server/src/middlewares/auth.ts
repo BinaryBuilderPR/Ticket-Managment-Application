@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { fromNodeHeaders } from 'better-auth/node';
+import { Role } from '@prisma/client';
 import { auth } from '../config/auth.js';
 
 export type AuthUser = typeof auth.$Infer.Session.user;
@@ -47,10 +48,10 @@ export const requireAuth = async (
  * Role-based access control middleware factory.
  *
  * Usage:
- *   router.use(requireAuth, requireRole('ADMIN'));
- *   router.get('/admin-only', requireAuth, requireRole('ADMIN', 'AGENT'), handler);
+ *   router.use(requireAuth, requireRole(Role.ADMIN));
+ *   router.get('/admin-only', requireAuth, requireRole(Role.ADMIN, Role.AGENT), handler);
  */
-export const requireRole = (...roles: string[]) =>
+export const requireRole = (...roles: (Role | string)[]) =>
   (req: Request, res: Response, next: NextFunction): void => {
     const user = (req as any).user as AuthUser | undefined;
 
@@ -64,7 +65,7 @@ export const requireRole = (...roles: string[]) =>
 
     const userRole: string = (user as any).role ?? '';
 
-    if (!roles.includes(userRole)) {
+    if (!roles.includes(userRole as Role)) {
       res.status(403).json({
         error: 'Forbidden',
         message: `This action requires one of the following roles: ${roles.join(', ')}.`,
@@ -80,6 +81,7 @@ export const requireRole = (...roles: string[]) =>
  * Must be chained after requireAuth:
  *   router.use(requireAuth, requireAdmin);
  */
-export const requireAdmin = requireRole('ADMIN');
+export const requireAdmin = requireRole(Role.ADMIN);
+
 
 
