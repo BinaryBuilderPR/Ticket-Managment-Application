@@ -111,6 +111,7 @@ npx prisma db seed # or npm run seed
   7. **Mutations Flow:** Verify payload submission, loading button state, success feedback, and automated query cache invalidation.
   8. **Server Error Feedback:** Verify backend validation/conflict errors (e.g. 409 email exists) display inside modals.
 * **Run Component Tests:**
+
   ```bash
   # Single run
   npm test -w client
@@ -139,4 +140,3 @@ npx prisma db seed # or npm run seed
   * Return structured `400 Bad Request` responses containing Zod validation error messages when validation fails.
 * **Type Safety & Single Source of Truth:**
   * Infer TypeScript types using `type UserFormData = z.infer<typeof createUserSchema>;`. Never maintain duplicate TypeScript interfaces for validated models.
-

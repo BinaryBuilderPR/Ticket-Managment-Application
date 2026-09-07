@@ -54,6 +54,7 @@ const createUserSchema = z.object({
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters'),
+  role: z.enum(['AGENT', 'ADMIN']).default('AGENT'),
 });
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
@@ -110,6 +111,7 @@ export const UsersPage: React.FC = () => {
       name: '',
       email: '',
       password: '',
+      role: 'AGENT',
     },
   });
 
@@ -446,6 +448,30 @@ export const UsersPage: React.FC = () => {
                 <p className="text-xs text-destructive flex items-center gap-1 mt-1">
                   <AlertCircle className="w-3 h-3 shrink-0" />
                   {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            {/* 4. Role Field (defaults to AGENT) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="create-role">Role</Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <select
+                  id="create-role"
+                  {...register('role')}
+                  className="flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="AGENT">Agent (Support Desk Staff)</option>
+                  <option value="ADMIN">Administrator (Full Access)</option>
+                </select>
+              </div>
+              {errors.role && (
+                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  {errors.role.message}
                 </p>
               )}
             </div>

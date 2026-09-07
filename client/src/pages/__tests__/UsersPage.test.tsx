@@ -152,6 +152,8 @@ describe('UsersPage Component', () => {
     expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/role/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/role/i)).toHaveValue('AGENT');
 
     // Click "Cancel" to close
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
@@ -235,6 +237,7 @@ describe('UsersPage Component', () => {
         name: 'Sarah Connor',
         email: 'sarah@example.com',
         password: 'SecurePass123!',
+        role: 'AGENT',
       });
     });
 
