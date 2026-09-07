@@ -33,7 +33,7 @@ describe('UsersPage Component', () => {
   // ---------------------------------------------------------------------------
   it('should render table skeleton rows while fetching users', () => {
     // Return a never-resolving promise to hold loading state
-    vi.spyOn(apiClient, 'get').mockReturnValue(new Promise(() => {}));
+    vi.spyOn(apiClient, 'get').mockReturnValue(new Promise(() => { }));
 
     const { container } = renderWithQuery(<UsersPage />);
 
@@ -262,7 +262,7 @@ describe('UsersPage Component', () => {
     vi.spyOn(apiClient, 'get').mockResolvedValue({
       data: { success: true, users: mockUsers },
     });
-    
+
     const conflictError = new AxiosError(
       'Conflict',
       '409',

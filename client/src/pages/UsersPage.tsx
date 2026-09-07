@@ -385,9 +385,8 @@ export const UsersPage: React.FC = () => {
                   placeholder="John Doe"
                   autoComplete="off"
                   {...register('name')}
-                  className={`pl-9 ${
-                    errors.name ? 'border-destructive focus-visible:ring-destructive' : ''
-                  }`}
+                  className={`pl-9 ${errors.name ? 'border-destructive focus-visible:ring-destructive' : ''
+                    }`}
                 />
               </div>
               {errors.name && (
@@ -412,9 +411,8 @@ export const UsersPage: React.FC = () => {
                   autoComplete="off"
                   data-lpignore="true"
                   {...register('email')}
-                  className={`pl-9 ${
-                    errors.email ? 'border-destructive focus-visible:ring-destructive' : ''
-                  }`}
+                  className={`pl-9 ${errors.email ? 'border-destructive focus-visible:ring-destructive' : ''
+                    }`}
                 />
               </div>
               {errors.email && (
@@ -439,9 +437,8 @@ export const UsersPage: React.FC = () => {
                   autoComplete="new-password"
                   data-lpignore="true"
                   {...register('password')}
-                  className={`pl-9 ${
-                    errors.password ? 'border-destructive focus-visible:ring-destructive' : ''
-                  }`}
+                  className={`pl-9 ${errors.password ? 'border-destructive focus-visible:ring-destructive' : ''
+                    }`}
                 />
               </div>
               {errors.password && (
