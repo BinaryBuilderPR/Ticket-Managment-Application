@@ -23,6 +23,7 @@ import {
   AlertCircle,
   CheckCircle2,
   RefreshCw,
+  Pencil,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { type UserItem } from '@ticket-desk/core';
@@ -31,6 +32,7 @@ import { UsersTable } from '@/components/UsersTable';
 
 export const UsersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // -------------------------------------------------------------------------
@@ -68,23 +70,35 @@ export const UsersPage: React.FC = () => {
     submitError,
     setSubmitError,
     isSubmitting,
+    isEditing,
     onSubmit,
   } = useUserForm({
+    editingUser,
     onSuccess: (user) => {
       setIsModalOpen(false);
-      setSuccessMessage(`User "${user.name}" was created successfully!`);
+      const action = editingUser ? 'updated' : 'created';
+      setSuccessMessage(`User "${user.name}" was ${action} successfully!`);
+      setEditingUser(null);
       setTimeout(() => setSuccessMessage(null), 5000);
     },
   });
 
-  const handleOpenModal = () => {
+  const handleOpenCreateModal = () => {
+    setEditingUser(null);
     reset();
+    setSubmitError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (user: UserItem) => {
+    setEditingUser(user);
     setSubmitError(null);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setEditingUser(null);
     reset();
     setSubmitError(null);
   };
@@ -117,7 +131,7 @@ export const UsersPage: React.FC = () => {
             Refresh
           </Button>
           <Button
-            onClick={handleOpenModal}
+            onClick={handleOpenCreateModal}
             className="gap-2 font-semibold shadow-lg shadow-primary/20 text-xs sm:text-sm"
           >
             <UserPlus className="w-4 h-4" />
@@ -156,21 +170,32 @@ export const UsersPage: React.FC = () => {
       <UsersTable
         users={users}
         isLoading={isLoadingUsers}
-        onCreateUserClick={handleOpenModal}
+        onCreateUserClick={handleOpenCreateModal}
+        onEditUser={handleOpenEditModal}
       />
 
-      {/* Create User Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      {/* Create / Edit User Modal */}
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(open) => {
+          setIsModalOpen(open);
+          if (!open) {
+            handleCloseModal();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader className="space-y-2">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-1">
-              <UserPlus className="w-5 h-5" />
+              {isEditing ? <Pencil className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
             </div>
             <DialogTitle className="text-xl font-bold tracking-tight">
-              Create New User
+              {isEditing ? 'Edit User' : 'Create New User'}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Enter user details to create a staff account in the database.
+              {isEditing
+                ? 'Update user details or leave password blank to retain current password.'
+                : 'Enter user details to create a staff account in the database.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -244,9 +269,11 @@ export const UsersPage: React.FC = () => {
               )}
             </div>
 
-            {/* 3. Password Field (min 8 chars) */}
+            {/* 3. Password Field (min 8 chars if provided / optional in edit) */}
             <div className="space-y-1.5">
-              <Label htmlFor="create-password">Password</Label>
+              <Label htmlFor="create-password">
+                {isEditing ? 'Password (leave blank to keep current)' : 'Password'}
+              </Label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
                   <Lock className="w-4 h-4" />
@@ -254,7 +281,11 @@ export const UsersPage: React.FC = () => {
                 <Input
                   id="create-password"
                   type="password"
-                  placeholder="••••••••••••"
+                  placeholder={
+                    isEditing
+                      ? 'Leave blank to keep current password'
+                      : '••••••••••••'
+                  }
                   autoComplete="new-password"
                   data-lpignore="true"
                   aria-invalid={!!errors.password}
@@ -312,10 +343,10 @@ export const UsersPage: React.FC = () => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    <span>Creating...</span>
+                    <span>{isEditing ? 'Saving...' : 'Creating...'}</span>
                   </>
                 ) : (
-                  <span>Create User</span>
+                  <span>{isEditing ? 'Save Changes' : 'Create User'}</span>
                 )}
               </Button>
             </DialogFooter>

@@ -10,7 +10,7 @@ import { Role } from '@prisma/client';
 import { toNodeHandler } from 'better-auth/node';
 import { prisma } from './db/prisma.js';
 import { auth } from './config/auth.js';
-import { createUserSchema } from '@ticket-desk/core';
+import { createUserSchema, updateUserSchema } from '@ticket-desk/core';
 import { requireAuth, requireAdmin } from './middlewares/auth.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
@@ -298,6 +298,111 @@ app.post('/api/users', requireAuth, requireAdmin, async (req, res, next) => {
       success: true,
       user: newUser,
       message: 'User created successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Update an existing user */
+app.patch('/api/users/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const parseResult = updateUserSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: parseResult.error.errors[0]?.message || 'Invalid user data',
+        details: parseResult.error.flatten().fieldErrors,
+      });
+    }
+
+    const { name, email, password, role } = parseResult.data;
+
+    // Check if target user exists
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'User not found.',
+      });
+    }
+
+    // Check if new email is already taken by another user
+    if (email !== user.email) {
+      const emailConflict = await prisma.user.findUnique({
+        where: { email },
+      });
+      if (emailConflict) {
+        return res.status(409).json({
+          error: 'Conflict',
+          message: `A user with email ${email} already exists.`,
+        });
+      }
+    }
+
+    const now = new Date();
+
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      // If password is provided, hash and update or create credential account
+      if (password && password.trim().length > 0) {
+        const hashedPassword = await hashPassword(password);
+        const existingAccount = await tx.account.findFirst({
+          where: {
+            userId: id,
+            providerId: 'credential',
+          },
+        });
+
+        if (existingAccount) {
+          await tx.account.update({
+            where: { id: existingAccount.id },
+            data: {
+              password: hashedPassword,
+              updatedAt: now,
+            },
+          });
+        } else {
+          await tx.account.create({
+            data: {
+              id: crypto.randomUUID(),
+              userId: id,
+              accountId: id,
+              providerId: 'credential',
+              issuer: 'local:credential',
+              password: hashedPassword,
+              createdAt: now,
+              updatedAt: now,
+            },
+          });
+        }
+      }
+
+      return tx.user.update({
+        where: { id },
+        data: {
+          name,
+          email,
+          role,
+          updatedAt: now,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          createdAt: true,
+        },
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      user: updatedUser,
+      message: 'User updated successfully.',
     });
   } catch (error) {
     next(error);

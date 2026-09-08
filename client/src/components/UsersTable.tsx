@@ -12,18 +12,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Users, ShieldCheck, UserPlus, Calendar } from 'lucide-react';
+import { Users, ShieldCheck, UserPlus, Calendar, Pencil } from 'lucide-react';
 
 export interface UsersTableProps {
   users: UserItem[];
   isLoading: boolean;
   onCreateUserClick?: () => void;
+  onEditUser?: (user: UserItem) => void;
 }
 
 export const UsersTable: React.FC<UsersTableProps> = ({
   users,
   isLoading,
   onCreateUserClick,
+  onEditUser,
 }) => {
   if (isLoading) {
     return (
@@ -42,6 +44,9 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               </TableHead>
               <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
                 Created
+              </TableHead>
+              <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider text-right">
+                Actions
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -62,6 +67,9 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                 </TableCell>
                 <TableCell className="px-6 py-4">
                   <Skeleton className="h-4 w-24" />
+                </TableCell>
+                <TableCell className="px-6 py-4 text-right">
+                  <Skeleton className="h-8 w-8 rounded-lg ml-auto" />
                 </TableCell>
               </TableRow>
             ))}
@@ -110,6 +118,9 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider">
               Created
             </TableHead>
+            <TableHead className="px-6 py-4 font-semibold uppercase text-xs tracking-wider text-right">
+              Actions
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -147,6 +158,20 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   </span>
                 </div>
               </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-right">
+                {onEditUser && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEditUser(u)}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors rounded-lg inline-flex items-center justify-center"
+                    title={`Edit user ${u.name}`}
+                    aria-label={`Edit user ${u.name}`}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -156,4 +181,3 @@ export const UsersTable: React.FC<UsersTableProps> = ({
 };
 
 export default UsersTable;
-

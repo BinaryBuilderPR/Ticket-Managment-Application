@@ -173,5 +173,87 @@ describe('useUserForm Hook', () => {
 
     expect(result.current.submitError).toBeNull();
   });
+
+  // ---------------------------------------------------------------------------
+  // Edit Mode Tests
+  // ---------------------------------------------------------------------------
+  it('should initialize with editingUser values when provided', () => {
+    const editingUser = {
+      id: 'usr-edit-1',
+      name: 'Existing Agent',
+      email: 'agent@example.com',
+      role: 'AGENT' as const,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    const { result } = renderHook(
+      () => useUserForm({ editingUser }),
+      { wrapper: createWrapper() }
+    );
+
+    expect(result.current.isEditing).toBe(true);
+    expect(result.current.form.getValues()).toEqual({
+      name: 'Existing Agent',
+      email: 'agent@example.com',
+      password: '',
+      role: 'AGENT',
+    });
+  });
+
+  it('should call PATCH /users/:id with updated values on submit in edit mode', async () => {
+    const editingUser = {
+      id: 'usr-edit-1',
+      name: 'Existing Agent',
+      email: 'agent@example.com',
+      role: 'AGENT' as const,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
+      data: {
+        success: true,
+        user: {
+          id: 'usr-edit-1',
+          name: 'Updated Agent Name',
+          email: 'updated@example.com',
+          role: 'ADMIN',
+        },
+      },
+    });
+
+    const onSuccessMock = vi.fn();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    const { result } = renderHook(
+      () => useUserForm({ editingUser, onSuccess: onSuccessMock }),
+      { wrapper: createWrapper() }
+    );
+
+    const updatePayload = {
+      name: 'Updated Agent Name',
+      email: 'updated@example.com',
+      password: '',
+      role: 'ADMIN' as const,
+    };
+
+    await act(async () => {
+      result.current.onSubmit(updatePayload);
+    });
+
+    await waitFor(() => {
+      expect(patchSpy).toHaveBeenCalledWith('/users/usr-edit-1', updatePayload);
+    });
+
+    await waitFor(() => {
+      expect(onSuccessMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'usr-edit-1',
+          name: 'Updated Agent Name',
+        })
+      );
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['users'] });
+  });
 });
 

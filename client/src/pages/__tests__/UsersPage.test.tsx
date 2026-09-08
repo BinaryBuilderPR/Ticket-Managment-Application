@@ -359,4 +359,132 @@ describe('UsersPage Component', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
+
+  // ---------------------------------------------------------------------------
+  // 9. Edit User Modal & Flow
+  // ---------------------------------------------------------------------------
+  it('should open edit modal populated with selected user data when Edit button is clicked', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: mockUsers },
+    });
+
+    const user = userEvent.setup();
+    renderWithQuery(<UsersPage />);
+
+    expect(await screen.findByText('Admin User')).toBeInTheDocument();
+
+    // Click edit button for "Admin User"
+    const editButton = screen.getByRole('button', { name: /edit user admin user/i });
+    await user.click(editButton);
+
+    // Modal dialog is open in Edit mode
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /edit user/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/full name/i)).toHaveValue('Admin User');
+    expect(screen.getByLabelText(/email address/i)).toHaveValue('admin@example.com');
+    expect(screen.getByLabelText(/role/i)).toHaveValue('ADMIN');
+    expect(screen.getByLabelText(/password/i)).toHaveValue('');
+    expect(
+      screen.getByRole('button', { name: /save changes/i })
+    ).toBeInTheDocument();
+  });
+
+  it('should successfully update user without changing password when password is omitted', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: mockUsers },
+    });
+    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
+      data: {
+        success: true,
+        user: {
+          id: 'usr-2',
+          name: 'Agent User Modified',
+          email: 'agent.modified@example.com',
+          role: 'ADMIN',
+          createdAt: mockUsers[1].createdAt,
+        },
+      },
+    });
+
+    const user = userEvent.setup();
+    renderWithQuery(<UsersPage />);
+
+    expect(await screen.findByText('Agent User')).toBeInTheDocument();
+
+    // Click edit button for Agent User
+    const editButton = screen.getByRole('button', { name: /edit user agent user/i });
+    await user.click(editButton);
+
+    // Clear name and change it
+    const nameInput = screen.getByLabelText(/full name/i);
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Agent User Modified');
+
+    // Change role
+    await user.selectOptions(screen.getByLabelText(/role/i), 'ADMIN');
+
+    // Click Save Changes without touching password
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(patchSpy).toHaveBeenCalledWith('/users/usr-2', {
+        name: 'Agent User Modified',
+        email: 'agent@example.com',
+        password: '',
+        role: 'ADMIN',
+      });
+    });
+
+    // Modal closed and success message shown
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(
+      await screen.findByText(/user "agent user modified" was updated successfully!/i)
+    ).toBeInTheDocument();
+  });
+
+  it('should successfully update user with new password when password is provided', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: mockUsers },
+    });
+    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue({
+      data: {
+        success: true,
+        user: {
+          id: 'usr-2',
+          name: 'Agent User',
+          email: 'agent@example.com',
+          role: 'AGENT',
+          createdAt: mockUsers[1].createdAt,
+        },
+      },
+    });
+
+    const user = userEvent.setup();
+    renderWithQuery(<UsersPage />);
+
+    expect(await screen.findByText('Agent User')).toBeInTheDocument();
+
+    const editButton = screen.getByRole('button', { name: /edit user agent user/i });
+    await user.click(editButton);
+
+    // Enter a new valid password
+    await user.type(screen.getByLabelText(/password/i), 'NewBrandPassword123!');
+
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(patchSpy).toHaveBeenCalledWith('/users/usr-2', {
+        name: 'Agent User',
+        email: 'agent@example.com',
+        password: 'NewBrandPassword123!',
+        role: 'AGENT',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
 });
