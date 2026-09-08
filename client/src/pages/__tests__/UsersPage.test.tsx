@@ -131,7 +131,7 @@ describe('UsersPage Component', () => {
   // ---------------------------------------------------------------------------
   // 5. Modal Open / Close Lifecycle
   // ---------------------------------------------------------------------------
-  it('should open and close the Create New User modal dialog', async () => {
+  it('should open and close the Create New User modal dialog via Cancel button', async () => {
     vi.spyOn(apiClient, 'get').mockResolvedValue({
       data: { success: true, users: mockUsers },
     });
@@ -162,6 +162,69 @@ describe('UsersPage Component', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
+  });
+
+  it('should dismiss the dialog when pressing the Escape key', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: mockUsers },
+    });
+
+    const user = userEvent.setup();
+    renderWithQuery(<UsersPage />);
+
+    // Open dialog
+    await user.click(screen.getByRole('button', { name: /create new user/i }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // Press Escape key
+    await user.keyboard('{Escape}');
+
+    // Modal should be hidden/dismissed
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should dismiss the dialog when clicking the X close button', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: mockUsers },
+    });
+
+    const user = userEvent.setup();
+    renderWithQuery(<UsersPage />);
+
+    // Open dialog
+    await user.click(screen.getByRole('button', { name: /create new user/i }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // Click the X / Close button (accessible name "Close")
+    const closeButton = screen.getByRole('button', { name: /close/i });
+    await user.click(closeButton);
+
+    // Modal should be hidden/dismissed
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should open the dialog from the empty state action button', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: [] },
+    });
+
+    const user = userEvent.setup();
+    renderWithQuery(<UsersPage />);
+
+    // Wait for empty state to render
+    expect(await screen.findByText(/no users found/i)).toBeInTheDocument();
+
+    // Click "Create User" button inside empty state card
+    const emptyStateCreateButton = screen.getByRole('button', { name: /^create user$/i });
+    await user.click(emptyStateCreateButton);
+
+    // Dialog should open
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /create new user/i })).toBeInTheDocument();
   });
 
   // ---------------------------------------------------------------------------
