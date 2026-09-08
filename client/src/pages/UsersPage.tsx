@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   RefreshCw,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { type UserItem } from '@ticket-desk/core';
@@ -31,8 +32,11 @@ import { useUserForm } from '@/hooks/useUserForm';
 import { UsersTable } from '@/components/UsersTable';
 
 export const UsersPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // -------------------------------------------------------------------------
@@ -58,6 +62,50 @@ export const UsersPage: React.FC = () => {
       ? fetchErrorObj.response.data.message
       : (fetchErrorObj as Error)?.message || 'Failed to fetch users. Please try again.'
     : null;
+
+  // -------------------------------------------------------------------------
+  // TanStack Query: Delete User Mutation
+  // -------------------------------------------------------------------------
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiClient.delete(`/users/${userId}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      const deletedName = userToDelete?.name || 'User';
+      setUserToDelete(null);
+      setDeleteError(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setSuccessMessage(`User "${deletedName}" was deleted successfully.`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    },
+    onError: (error: any) => {
+      const message =
+        axios.isAxiosError(error) && error.response?.data?.message
+          ? error.response.data.message
+          : error.message || 'Failed to delete user. Please try again.';
+      setDeleteError(message);
+    },
+  });
+
+  const handleOpenDeleteModal = (user: UserItem) => {
+    setUserToDelete(user);
+    setDeleteError(null);
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (!deleteUserMutation.isPending) {
+      setUserToDelete(null);
+      setDeleteError(null);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (userToDelete) {
+      setDeleteError(null);
+      deleteUserMutation.mutate(userToDelete.id);
+    }
+  };
 
   // -------------------------------------------------------------------------
   // Custom Hook: useUserForm
@@ -172,6 +220,7 @@ export const UsersPage: React.FC = () => {
         isLoading={isLoadingUsers}
         onCreateUserClick={handleOpenCreateModal}
         onEditUser={handleOpenEditModal}
+        onDeleteUser={handleOpenDeleteModal}
       />
 
       {/* Create / Edit User Modal */}
@@ -353,8 +402,87 @@ export const UsersPage: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation Modal */}
+      <Dialog
+        open={Boolean(userToDelete)}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCloseDeleteModal();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="space-y-2">
+            <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center mb-1">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+              Delete User
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Are you sure you want to deactivate and remove this user? This action performs a soft deletion.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteError && (
+            <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-2.5 text-xs animate-in fade-in duration-150">
+              <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+              <span>{deleteError}</span>
+            </div>
+          )}
+
+          {userToDelete && (
+            <div className="p-4 rounded-xl bg-secondary/40 border border-border/70 space-y-2.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Name:</span>
+                <span className="font-semibold text-foreground">{userToDelete.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Email:</span>
+                <span className="font-medium text-foreground">{userToDelete.email}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Role:</span>
+                <span className="font-medium uppercase text-muted-foreground">{userToDelete.role}</span>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="pt-3 gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCloseDeleteModal}
+              disabled={deleteUserMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteUserMutation.isPending}
+              className="font-semibold gap-2"
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete User</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default UsersPage;
+

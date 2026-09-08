@@ -52,6 +52,8 @@ export interface UserItem {
   email: string;
   role: UserRole;
   createdAt: string | Date;
+  updatedAt?: string | Date;
+  deletedAt?: string | Date | null;
   emailVerified?: boolean;
 }
 

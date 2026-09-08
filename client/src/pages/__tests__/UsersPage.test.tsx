@@ -487,4 +487,129 @@ describe('UsersPage Component', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // 10. Delete User Modal & Soft Deletion Flow
+  // ---------------------------------------------------------------------------
+  it('should disable delete button for ADMIN users and enable for AGENT users', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: mockUsers },
+    });
+
+    renderWithQuery(<UsersPage />);
+
+    expect(await screen.findByText('Admin User')).toBeInTheDocument();
+
+    const adminDeleteButton = screen.getByRole('button', { name: /delete user admin user/i });
+    const agentDeleteButton = screen.getByRole('button', { name: /delete user agent user/i });
+
+    expect(adminDeleteButton).toBeDisabled();
+    expect(adminDeleteButton).toHaveAttribute('title', 'Administrators cannot be deleted');
+    expect(agentDeleteButton).toBeEnabled();
+  });
+
+  it('should open delete confirmation dialog with user details and allow canceling', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: mockUsers },
+    });
+    const deleteSpy = vi.spyOn(apiClient, 'delete');
+
+    const user = userEvent.setup();
+    renderWithQuery(<UsersPage />);
+
+    expect(await screen.findByText('Agent User')).toBeInTheDocument();
+
+    // Click delete on Agent User
+    const agentDeleteButton = screen.getByRole('button', { name: /delete user agent user/i });
+    await user.click(agentDeleteButton);
+
+    // Confirmation dialog appears
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /delete user/i })).toBeInTheDocument();
+    expect(screen.getByText(/are you sure you want to deactivate and remove this user\?/i)).toBeInTheDocument();
+
+    // Click Cancel button inside dialog
+    const cancelButton = screen.getByRole('button', { name: /cancel/i });
+    await user.click(cancelButton);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('should successfully soft-delete user when confirmed, invalidate query, and show success message', async () => {
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: mockUsers },
+    });
+    const deleteSpy = vi.spyOn(apiClient, 'delete').mockResolvedValue({
+      data: { success: true, message: 'User "Agent User" has been deleted successfully.' },
+    });
+
+    const user = userEvent.setup();
+    renderWithQuery(<UsersPage />);
+
+    expect(await screen.findByText('Agent User')).toBeInTheDocument();
+
+    // Open delete confirmation
+    const agentDeleteButton = screen.getByRole('button', { name: /delete user agent user/i });
+    await user.click(agentDeleteButton);
+
+    // Confirm deletion by clicking the Delete User button inside modal
+    const confirmDeleteBtn = screen.getByRole('button', { name: /^delete user$/i });
+    await user.click(confirmDeleteBtn);
+
+    await waitFor(() => {
+      expect(deleteSpy).toHaveBeenCalledWith('/users/usr-2');
+    });
+
+    // Modal closes
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    // Success notification is displayed
+    expect(
+      await screen.findByText(/user "agent user" was deleted successfully\./i)
+    ).toBeInTheDocument();
+
+    // Invalidation causes refetch
+    expect(getSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('should display error in delete modal if backend rejection occurs', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: { success: true, users: mockUsers },
+    });
+    const forbiddenError = new AxiosError(
+      'Forbidden',
+      '403',
+      undefined,
+      undefined,
+      {
+        status: 403,
+        statusText: 'Forbidden',
+        headers: {},
+        config: {} as any,
+        data: { message: 'Administrator accounts cannot be deleted.' },
+      }
+    );
+    vi.spyOn(apiClient, 'delete').mockRejectedValue(forbiddenError);
+
+    const user = userEvent.setup();
+    renderWithQuery(<UsersPage />);
+
+    expect(await screen.findByText('Agent User')).toBeInTheDocument();
+
+    const agentDeleteButton = screen.getByRole('button', { name: /delete user agent user/i });
+    await user.click(agentDeleteButton);
+
+    const confirmDeleteBtn = screen.getByRole('button', { name: /^delete user$/i });
+    await user.click(confirmDeleteBtn);
+
+    expect(
+      await screen.findByText(/administrator accounts cannot be deleted\./i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
 });

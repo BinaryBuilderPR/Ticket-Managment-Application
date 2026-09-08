@@ -20,6 +20,7 @@ model User {
   role          Role      @default(AGENT)
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   sessions               Session[]
   accounts               Account[]
@@ -27,6 +28,7 @@ model User {
   sentMessages           TicketMessage[]
   knowledgeBaseDocuments KnowledgeBaseDocument[]
 
+  @@index([deletedAt])
   @@map("users")
 }
 

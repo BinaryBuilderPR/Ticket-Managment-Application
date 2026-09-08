@@ -12,13 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Users, ShieldCheck, UserPlus, Calendar, Pencil } from 'lucide-react';
+import { Users, ShieldCheck, UserPlus, Calendar, Pencil, Trash2 } from 'lucide-react';
 
 export interface UsersTableProps {
   users: UserItem[];
   isLoading: boolean;
   onCreateUserClick?: () => void;
   onEditUser?: (user: UserItem) => void;
+  onDeleteUser?: (user: UserItem) => void;
 }
 
 export const UsersTable: React.FC<UsersTableProps> = ({
@@ -26,6 +27,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   isLoading,
   onCreateUserClick,
   onEditUser,
+  onDeleteUser,
 }) => {
   if (isLoading) {
     return (
@@ -159,18 +161,41 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                 </div>
               </TableCell>
               <TableCell className="px-6 py-4 whitespace-nowrap text-right">
-                {onEditUser && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEditUser(u)}
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors rounded-lg inline-flex items-center justify-center"
-                    title={`Edit user ${u.name}`}
-                    aria-label={`Edit user ${u.name}`}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                )}
+                <div className="flex items-center justify-end gap-1.5">
+                  {onEditUser && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEditUser(u)}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors rounded-lg inline-flex items-center justify-center"
+                      title={`Edit user ${u.name}`}
+                      aria-label={`Edit user ${u.name}`}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {onDeleteUser && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDeleteUser(u)}
+                      disabled={u.role === 'ADMIN'}
+                      className={`h-8 w-8 p-0 transition-colors rounded-lg inline-flex items-center justify-center ${
+                        u.role === 'ADMIN'
+                          ? 'opacity-40 cursor-not-allowed text-muted-foreground hover:bg-transparent'
+                          : 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
+                      }`}
+                      title={
+                        u.role === 'ADMIN'
+                          ? 'Administrators cannot be deleted'
+                          : `Delete user ${u.name}`
+                      }
+                      aria-label={`Delete user ${u.name}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}

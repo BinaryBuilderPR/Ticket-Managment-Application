@@ -201,10 +201,13 @@ app.get('/api/db-status', requireAuth, requireAdmin, async (_req, res) => {
 // User Management Endpoints (Admin only)
 // ---------------------------------------------------------------------------
 
-/** List all users */
+/** List all active users */
 app.get('/api/users', requireAuth, requireAdmin, async (_req, res, next) => {
   try {
     const users = await prisma.user.findMany({
+      where: {
+        deletedAt: null,
+      },
       select: {
         id: true,
         name: true,
@@ -241,12 +244,18 @@ app.post('/api/users', requireAuth, requireAdmin, async (req, res, next) => {
 
     const { name, email, password, role } = parseResult.data;
 
-    // Check if user already exists
+    // Check if user already exists (active or soft-deleted)
     const existing = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existing) {
+      if (existing.deletedAt !== null) {
+        return res.status(409).json({
+          error: 'Conflict',
+          message: `This email is associated with a deleted account. Please use a different email or restore the existing account.`,
+        });
+      }
       return res.status(409).json({
         error: 'Conflict',
         message: `A user with email ${email} already exists.`,
@@ -319,12 +328,12 @@ app.patch('/api/users/:id', requireAuth, requireAdmin, async (req, res, next) =>
 
     const { name, email, password, role } = parseResult.data;
 
-    // Check if target user exists
+    // Check if target user exists and is not deleted
     const user = await prisma.user.findUnique({
       where: { id },
     });
 
-    if (!user) {
+    if (!user || user.deletedAt !== null) {
       return res.status(404).json({
         error: 'Not Found',
         message: 'User not found.',
@@ -337,6 +346,12 @@ app.patch('/api/users/:id', requireAuth, requireAdmin, async (req, res, next) =>
         where: { email },
       });
       if (emailConflict) {
+        if (emailConflict.deletedAt !== null) {
+          return res.status(409).json({
+            error: 'Conflict',
+            message: `This email is associated with a deleted account. Please use a different email or restore the existing account.`,
+          });
+        }
         return res.status(409).json({
           error: 'Conflict',
           message: `A user with email ${email} already exists.`,
@@ -403,6 +418,77 @@ app.patch('/api/users/:id', requireAuth, requireAdmin, async (req, res, next) =>
       success: true,
       user: updatedUser,
       message: 'User updated successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Soft delete a user (Admin only, cannot delete ADMIN accounts) */
+app.delete('/api/users/:id', requireAuth, requireAdmin, async (req: any, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!targetUser || targetUser.deletedAt !== null) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'User not found.',
+      });
+    }
+
+    // Enforce business rule: Administrator accounts cannot be deleted
+    if (targetUser.role === 'ADMIN') {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Administrator accounts cannot be deleted.',
+      });
+    }
+
+    // Prevent self-deletion
+    if (req.user?.id === id) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'You cannot delete your own account.',
+      });
+    }
+
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Soft-delete the user
+      await tx.user.update({
+        where: { id },
+        data: {
+          deletedAt: now,
+          updatedAt: now,
+        },
+      });
+
+      // 2. Invalidate all active sessions for this user
+      await tx.session.deleteMany({
+        where: { userId: id },
+      });
+
+      // 3. Unassign any open tickets assigned to this agent
+      await tx.ticket.updateMany({
+        where: {
+          assignedAgentId: id,
+          status: 'OPEN',
+        },
+        data: {
+          assignedAgentId: null,
+          updatedAt: now,
+        },
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `User "${targetUser.name}" has been deleted successfully.`,
     });
   } catch (error) {
     next(error);
