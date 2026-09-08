@@ -48,7 +48,7 @@ describe('useUserForm Hook', () => {
 
     // Trigger validation by calling handleSubmit with dummy handler
     await act(async () => {
-      await result.current.handleSubmit(() => {})();
+      await result.current.handleSubmit(() => { })();
     });
 
     expect(result.current.form.formState.errors.name?.message).toMatch(
@@ -174,3 +174,4 @@ describe('useUserForm Hook', () => {
     expect(result.current.submitError).toBeNull();
   });
 });
+

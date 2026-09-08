@@ -203,6 +203,7 @@ export const UsersPage: React.FC = () => {
                   type="text"
                   placeholder="John Doe"
                   autoComplete="off"
+                  aria-invalid={!!errors.name}
                   {...register('name')}
                   className={`pl-9 ${errors.name ? 'border-destructive focus-visible:ring-destructive' : ''
                     }`}
@@ -229,6 +230,7 @@ export const UsersPage: React.FC = () => {
                   placeholder="john.doe@example.com"
                   autoComplete="off"
                   data-lpignore="true"
+                  aria-invalid={!!errors.email}
                   {...register('email')}
                   className={`pl-9 ${errors.email ? 'border-destructive focus-visible:ring-destructive' : ''
                     }`}
@@ -255,6 +257,7 @@ export const UsersPage: React.FC = () => {
                   placeholder="••••••••••••"
                   autoComplete="new-password"
                   data-lpignore="true"
+                  aria-invalid={!!errors.password}
                   {...register('password')}
                   className={`pl-9 ${errors.password ? 'border-destructive focus-visible:ring-destructive' : ''
                     }`}
